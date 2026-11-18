@@ -85,7 +85,9 @@ def retrieval_metrics(kb: KB, router: Router, items: list[dict], k: int) -> dict
     for it in items:
         route = router.route(it["q"])
         brands = [b for b in route.brands if b in config.load("sources")["brands"]]
-        hits = kb.search(it["q"], k=k, brand=brands[0] if len(brands) == 1 else None)
+        hits = kb.search(
+            it["q"], k=k, brand=brands[0] if len(brands) == 1 else None, graph=kb.graph_context(it["q"])
+        )
         per_lang[it["lang"]].append(rank_of(hits, it["expect_url"]))
     out = {}
     for lang, ranks in list(per_lang.items()) + [("all", [r for v in per_lang.values() for r in v])]:
@@ -99,6 +101,29 @@ def retrieval_metrics(kb: KB, router: Router, items: list[dict], k: int) -> dict
             f"ndcg@{k}": round(sum(1 / math.log2(r + 2) for r in ranks if r is not None) / n, 3),
         }
     return out
+
+
+def guardrail_suite() -> dict:
+    """Input-rail cases (EN/AR): expected one of block:unsafe, block:encoded, injection, advice, pass."""
+    from concierge.chat import guardrails
+
+    router = Router()
+    rows = [json.loads(line) for line in (ROOT / "evals" / "guardrail_cases.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    ok = 0
+    misses = []
+    for r in rows:
+        text = guardrails.normalise(r["q"])
+        v = guardrails.check_input(text)
+        if v.block:
+            got = f"block:{v.block}"
+        elif router.route(text).intent == "injection":
+            got = "injection"
+        else:
+            got = "advice" if v.advice else "pass"
+        ok += got == r["expect"]
+        if got != r["expect"]:
+            misses.append({"q": r["q"], "expect": r["expect"], "got": got})
+    return {"n": len(rows), "accuracy": round(ok / len(rows), 3), "misses": misses}
 
 
 def offline(write: bool = True) -> dict:
@@ -116,11 +141,13 @@ def offline(write: bool = True) -> dict:
         if g["intent"] != "rag":
             continue
         route = router.route(g["q"])
-        hits = kb.search(g["q"])
+        graph = kb.graph_context(g["q"])
+        hits = kb.search(g["q"], graph=graph)
         on_topic = (
             bool(route.brands)
             or any(w in g["q"].lower() for w in router.cfg["domain_words"])
             or kb.mentions_known_entity(g["q"])
+            or bool(graph.seeds)
         )
         answered = kb.is_confident(hits, on_topic)
         refuse_rows.append((bool(g.get("refuse")), not answered))
@@ -128,22 +155,25 @@ def offline(write: bool = True) -> dict:
     false_refusals = sum(1 for should, did in refuse_rows if did and not should)
     missed_refusals = sum(1 for should, did in refuse_rows if should and not did)
 
-    # Retrieval experiments: lexical only, dense only, hybrid at a few weights.
+    # Retrieval experiments: each retriever alone, hybrid without the graph, and hybrid + graph (GraphRAG).
     cfg = kb.cfg
     base_w = dict(cfg["weights"])
     experiments = {}
     for name, w in {
-        "bm25_only": {"bm25": 1.0, "dense": 0.0},
-        "dense_only": {"bm25": 0.0, "dense": 1.0},
-        "hybrid_1_1": {"bm25": 1.0, "dense": 1.0},
-        "hybrid_1_1.2": {"bm25": 1.0, "dense": 1.2},
-        "hybrid_1_2": {"bm25": 1.0, "dense": 2.0},
+        "bm25_only": {"bm25": 1.0, "dense": 0.0, "graph": 0.0},
+        "dense_only": {"bm25": 0.0, "dense": 1.0, "graph": 0.0},
+        "graph_only": {"bm25": 0.0, "dense": 0.0, "graph": 1.0},
+        "hybrid_no_graph": {"bm25": 1.0, "dense": 1.2, "graph": 0.0},
+        "hybrid+graph_0.2": {"bm25": 1.0, "dense": 1.2, "graph": 0.2},
+        "hybrid+graph_0.4": {"bm25": 1.0, "dense": 1.2, "graph": 0.4},
+        "hybrid+graph_1.0": {"bm25": 1.0, "dense": 1.2, "graph": 1.0},
     }.items():
         cfg["weights"] = w
         experiments[name] = retrieval_metrics(kb, router, retr_items, cfg["top_k"])["all"]
     cfg["weights"] = base_w
     current = retrieval_metrics(kb, router, retr_items, cfg["top_k"])
 
+    guard_rows = guardrail_suite()
     gates = config.load("evals")
     report = {
         "kb_version": kb.version,
@@ -157,6 +187,8 @@ def offline(write: bool = True) -> dict:
         "missed_refusals": missed_refusals,
         "retrieval": current,
         "experiments": experiments,
+        "guardrails": guard_rows,
+        "graph": kb.manifest.get("graph"),
         "router_misses": [g["q"] for g, ok in zip(golden, intent_ok, strict=True) if not ok][:20],
         "seconds": round(time.monotonic() - started, 1),
     }
@@ -165,6 +197,7 @@ def offline(write: bool = True) -> dict:
         "hit@k": current["all"][f"hit@{cfg['top_k']}"] >= gates["retrieval_hit_at_k_min"],
         "mrr": current["all"]["mrr"] >= gates["retrieval_mrr_min"],
         "refusal_accuracy": report["refusal_accuracy"] >= gates["refusal_accuracy_min"],
+        "guardrail_accuracy": guard_rows["accuracy"] >= gates.get("guardrail_accuracy_min", 0.9),
     }
     if write:
         (ROOT / "docs" / "evals.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -189,6 +222,14 @@ def write_markdown(r: dict, k: int) -> None:
         f"| False refusals / missed refusals | {r['false_refusals']} / {r['missed_refusals']} | — |",
         f"| Retrieval hit@{k} (all) | {r['retrieval']['all'][f'hit@{k}']} | {'pass' if r['gates']['hit@k'] else 'FAIL'} |",
         f"| Retrieval MRR (all) | {r['retrieval']['all']['mrr']} | {'pass' if r['gates']['mrr'] else 'FAIL'} |",
+        f"| Input guardrail accuracy ({r['guardrails']['n']} EN/AR cases) | {r['guardrails']['accuracy']} | "
+        f"{'pass' if r['gates']['guardrail_accuracy'] else 'FAIL'} |",
+        "",
+        "## Knowledge graph",
+        "",
+        f"{r['graph']['entities']} entities and {r['graph']['edges']} evidence-backed edges "
+        f"({', '.join(f'{v} {t}' for t, v in r['graph']['entity_types'].items())}). Retrieval runs BM25, dense and "
+        "graph expansion and fuses them with reciprocal-rank fusion; the experiments below isolate the graph's effect.",
         "",
         "## Retrieval by language",
         "",

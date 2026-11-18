@@ -1,0 +1,47 @@
+# Guardrails. Input rails run before routing; output rails run on every generated answer before the
+# citations are sent. Each check reports pass / warn / fail to the UI ("Answer checks").
+input:
+  # Obfuscated payloads (long base64/hex blobs) are a common way to smuggle instructions past filters.
+  encoded_min_chars: 80
+  # Requests the concierge must decline outright (EN/AR). Kept narrow: real-estate questions about
+  # security, safety or legal status must still get through.
+  unsafe_patterns:
+    - "\\b(make|build|buy)\\s+(a\\s+)?(bomb|explosive|weapon|gun)s?\\b"
+    - "\\b(kill|hurt|harm)\\s+(myself|yourself|someone|him|her|them)\\b"
+    - "\\b(suicide|self[- ]harm)\\b"
+    - "\\b(launder|laundering)\\s+(money|funds|cash)\\b|\\bmoney\\s+laundering\\b"
+    - "\\b(evade|avoid)\\s+(sanctions|aml|kyc)\\b"
+    - "\\b(hack(ing)?|phish(ing)?|ddos)\\b"
+    - "(صنع|تصنيع)\\s+(قنبلة|متفجرات|سلاح)|غسيل\\s+(الأموال|اموال|أموال)|الانتحار|إيذاء\\s+النفس"
+  # Personal advice requests: the facts are still answered, with a standing disclaimer.
+  advice_patterns:
+    - "\\bshould i (buy|invest|sell|rent)\\b"
+    - "\\b(is|are) (it|this|they|these) (a )?(good|safe|smart|wise) (investment|buy|deal)"
+    - "\\b(best|safest) (investment|project to (buy|invest))\\b"
+    - "\\b(guaranteed|assured) (return|returns|yield|profit|rental income)\\b"
+    - "\\b(roi|rental yield|capital appreciation) (will|would|can) i\\b"
+    - "هل (أستثمر|استثمر|أشتري|اشتري)|استثمار (آمن|مضمون)|عائد مضمون|أفضل (استثمار|مشروع للاستثمار)"
+output:
+  # Sentence-level grounding: each factual sentence is embedded and compared with the passages it
+  # cites (or all retrieved passages when it cites none). Calibrated in docs/evals.md.
+  grounding_min_similarity: 0.45
+  grounding_min_lexical: 0.5
+  grounding_stopwords: [that, this, with, from, have, been, were, which, their, also, into, about, there, these,
+                        those, will, would, could, should, only, other, more, than, such, over, under, after, before,
+                        while, where, when, what, they, them, then, provided, sources, source, according, based,
+                        mentioned, available, information, details, including, includes, include, company, project]
+  grounding_min_words: 6
+  grounding_max_sentences: 14
+  # Fraction of factual sentences that must be supported for the check to pass (below: warn).
+  grounding_pass_ratio: 0.7
+  # Fraction of factual sentences that must carry a [n] citation (below: warn).
+  citation_pass_ratio: 0.6
+  # A run of this many words copied from the system prompt is treated as a prompt leak.
+  leak_ngram_words: 8
+  # Phrases the concierge must never say on its own authority.
+  advice_patterns:
+    - "\\bguaranteed\\b[^.]{0,40}\\b(return|returns|yield|profit|income|appreciation)\\b"
+    - "\\brisk[- ]free\\b"
+    - "\\byou should (definitely )?(buy|invest|sell)\\b"
+    - "\\b(will|is going to) (definitely|certainly|surely) (rise|increase|appreciate|double)\\b"
+    - "عائد مضمون|بدون مخاطر|يجب عليك (الشراء|الاستثمار)"

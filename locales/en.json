@@ -68,5 +68,15 @@
   "sqm": "sqm",
   "rega_verified": "REGA ad licence",
   "view_listing": "View listing",
-  "updated": "Updated"
+  "updated": "Updated",
+  "refuse_unsafe": "I can't help with that. I'm here for questions about these real-estate companies, their projects and property listings.",
+  "advice_note": "This is factual information from public sources, not investment advice. Returns are never guaranteed; speak to a licensed adviser before investing.",
+  "followup_templates": {
+    "project": "Tell me about {name}",
+    "place": "Which projects are in {name}?",
+    "partner": "Which projects are branded with {name}?",
+    "company": "What are the latest announcements from {name}?",
+    "person": "What has {name} said recently?",
+    "exchange": "Which companies are listed on the {name}?"
+  }
 }

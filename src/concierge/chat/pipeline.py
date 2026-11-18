@@ -1,12 +1,17 @@
 """The chat flow as an explicit graph of small steps.
 
-    sanitize -> detect language -> route --+-- injection / greeting / handoff -> canned reply
-                                           +-- listing_search -> SQL filters -> cards (no LLM)
-                                           +-- rag -> retrieve -> confident? -- no -> refuse + handoff
-                                                                      | yes
-                                                                      v
-                                                      generate (LLM, streamed) -> verify numbers -> citations
-                                                      (LLM down -> extractive answer with citations)
+    sanitize -> normalise -> input rails -> route --+-- blocked / injection / greeting / handoff -> fixed reply
+                                                    +-- listing_search -> SQL filters -> cards (no LLM)
+                                                    +-- rag -> graph seeds -> retrieve (BM25 + dense + graph, RRF)
+                                                               -> confident? -- no -> refuse + handoff
+                                                                    | yes
+                                                                    v
+                                     generate (LLM, streamed, with sources + graph relations)
+                                     (LLM down -> extractive answer with citations)
+                                                                    v
+                                     output rails (citations, grounding, numbers, leakage, PII, blending, advice)
+                                                                    v
+                                     citations -> follow-up suggestions from the graph -> trace
 
 Every step emits events; the API turns them into SSE.
 """
@@ -19,10 +24,13 @@ from collections.abc import AsyncIterator
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 
+import numpy as np
+
 from concierge import config
-from concierge.chat import guard
+from concierge.chat import guard, guardrails
 from concierge.chat.llm import LLMUnavailable, OpenRouter
 from concierge.chat.router import Route, Router
+from concierge.kb.graph import GraphContext
 from concierge.kb.store import KB, Hit
 from concierge.observability import log, metrics
 
@@ -75,10 +83,15 @@ class Concierge:
     # ---- entry -------------------------------------------------------------------------------
     async def run(self, req: ChatRequest) -> AsyncIterator[dict]:
         started = time.monotonic()
-        text = guard.sanitize(req.message, self.app["max_input_chars"])
+        trace = Trace()
+        text = guardrails.normalise(guard.sanitize(req.message, self.app["max_input_chars"]))
+        verdict = guardrails.check_input(text)
         route = self.router.route(text)
+        if verdict.block:
+            route.intent = "blocked"
         lang = route.lang if text else (req.lang or "en")
         L = config.locale(lang)
+        trace.step("route", intent=route.intent, lang=lang, brands=route.brands, input_rail=verdict.block or "pass")
         metrics.REQUESTS.labels(intent=route.intent, lang=lang).inc()
         yield {
             "event": "meta",
@@ -91,7 +104,10 @@ class Concierge:
             },
         }
         try:
-            if route.intent == "injection":
+            if route.intent == "blocked":
+                metrics.REFUSALS.labels(reason=verdict.block).inc()
+                yield self._say(L["refuse_unsafe"] if verdict.block == "unsafe" else L["refuse_injection"])
+            elif route.intent == "injection":
                 metrics.REFUSALS.labels(reason="injection").inc()
                 yield self._say(L["refuse_injection"])
             elif route.intent == "greeting":
@@ -104,10 +120,11 @@ class Concierge:
                 async for ev in self._listings(route, L, lang):
                     yield ev
             else:
-                async for ev in self._rag(text, route, req, L, lang):
+                async for ev in self._rag(text, route, req, L, lang, trace, verdict.advice):
                     yield ev
         finally:
             metrics.LATENCY.observe(time.monotonic() - started)
+        yield {"event": "trace", "data": trace.steps}
         yield {"event": "done", "data": {"elapsed_ms": int((time.monotonic() - started) * 1000)}}
 
     @staticmethod
@@ -166,24 +183,92 @@ class Concierge:
         }
 
     # ---- retrieval-augmented answers -------------------------------------------------------
-    def _retrieve(self, text: str, route: Route, req: ChatRequest) -> list[Hit]:
+    def _retrieve(self, text: str, route: Route, req: ChatRequest) -> tuple[list[Hit], GraphContext]:
         query = text
         prev = [t.content for t in req.history if t.role == "user"][-1:]
         if prev and len(text) < 60:  # short follow-ups ("and in Oman?") need the previous question
             query = f"{prev[0]} {text}"
+        graph = self.kb.graph_context(text)
+        if not graph.seeds and query != text:
+            graph = self.kb.graph_context(query)
         brands = [b for b in route.brands if b in config.load("sources")["brands"]]
         if len(brands) == 1:
-            return self.kb.search(query, brand=brands[0])
-        return self.kb.search(query)
+            return self.kb.search(query, brand=brands[0], graph=graph), graph
+        return self.kb.search(query, graph=graph), graph
 
-    async def _rag(self, text: str, route: Route, req: ChatRequest, L: dict, lang: str) -> AsyncIterator[dict]:
-        hits = self._retrieve(text, route, req)
+    def _graph_event(self, graph: GraphContext, hits: list[Hit], lang: str) -> dict:
+        g = self.kb.graph
+        facts = g.facts(graph, [h.rowid for h in hits], lang)
+        return {
+            "event": "graph",
+            "data": {
+                "seeds": [{"id": e["id"], "name": g.name(e["id"], lang), "type": e["type"]} for e in graph.seeds],
+                "neighbours": [
+                    {"id": e["id"], "name": g.name(e["id"], lang), "type": e["type"]} for e in graph.neighbours[:8]
+                ],
+                "wanted_type": graph.wanted_type,
+                "facts": [
+                    {
+                        "a": f.a_name,
+                        "a_type": f.a_type,
+                        "label": f.label,
+                        "b": f.b_name,
+                        "b_type": f.b_type,
+                        "cites": f.cites,
+                    }
+                    for f in facts
+                ],
+            },
+        }
+
+    def _followups(self, graph: GraphContext, hits: list[Hit], L: dict, lang: str) -> list[str]:
+        """Next questions from the graph: neighbours of what was asked, or the entities the cited
+        passages are about when the question named none."""
+        g = self.kb.graph
+        templates = L.get("followup_templates", {})
+        asked = {e["id"] for e in graph.seeds}
+        pool = [e["id"] for e in graph.neighbours]
+        if not pool:
+            counts: dict[str, int] = {}
+            for h in hits[:4]:
+                for eid in g.chunk_entities.get(h.rowid, ()):
+                    counts[eid] = counts.get(eid, 0) + 1
+            pool = sorted(counts, key=lambda e: -counts[e])
+        out: list[str] = []
+        for eid in pool:
+            e = g.entities.get(eid)
+            if not e or eid in asked or e["type"] not in templates:
+                continue
+            q = templates[e["type"]].format(name=g.name(eid, lang))
+            if q not in out:
+                out.append(q)
+            if len(out) == 3:
+                break
+        return out
+
+    async def _rag(
+        self, text: str, route: Route, req: ChatRequest, L: dict, lang: str, trace: Trace, advice: bool = False
+    ) -> AsyncIterator[dict]:
+        t0 = time.monotonic()
+        hits, graph = self._retrieve(text, route, req)
         on_topic = (
             bool(route.brands)
             or any(w in text.lower() for w in self.router.cfg["domain_words"])
             or self.kb.mentions_known_entity(text)
+            or bool(graph.seeds)
         )
         confident = self.kb.is_confident(hits, on_topic)
+        trace.step(
+            "retrieve",
+            ms=int((time.monotonic() - t0) * 1000),
+            hits=len(hits),
+            from_bm25=sum(h.bm25_rank is not None for h in hits),
+            from_dense=sum(h.dense_rank is not None for h in hits),
+            from_graph=sum(h.graph_rank is not None for h in hits),
+            graph_entities=[e["name"] for e in graph.seeds],
+            best_similarity=round(max((h.dense_sim or 0.0) for h in hits[:3]), 3) if hits else None,
+            confident=confident,
+        )
         yield {
             "event": "retrieval",
             "data": [
@@ -193,6 +278,7 @@ class Concierge:
                     "score": round(h.score, 4),
                     "bm25_rank": h.bm25_rank,
                     "dense_rank": h.dense_rank,
+                    "graph_rank": h.graph_rank,
                     "dense_sim": None if h.dense_sim is None else round(h.dense_sim, 3),
                 }
                 for h in hits
@@ -207,13 +293,21 @@ class Concierge:
                 yield {"event": "handoff", "data": self._handoff(route, lang)}
             return
 
+        if graph.seeds:
+            yield self._graph_event(graph, hits, lang)
         sources = self._format_sources(hits, lang)
+        relations = "\n".join(
+            f"{f.a_name} ({f.a_type}) — {f.label} — {f.b_name} ({f.b_type}) " + "".join(f"[{c}]" for c in f.cites)
+            for f in self.kb.graph.facts(graph, [h.rowid for h in hits], "en")
+        )
         over = self.llm.check_budget(req.session_id) if self.llm.enabled else "disabled"
         meta: dict = {}
         answer = ""
+        messages = self._messages(text, sources, req, lang, relations or "(none)")
+        t1 = time.monotonic()
         if over is None:
             try:
-                async for delta in self.llm.stream(self._messages(text, sources, req, lang), meta):
+                async for delta in self.llm.stream(messages, meta):
                     answer += delta
                     yield {"event": "token", "data": {"text": delta}}
             except LLMUnavailable as exc:
@@ -227,13 +321,40 @@ class Concierge:
             yield self._say(answer)
             meta["model"] = "extractive-fallback"
 
-        missing = guard.unsupported_numbers(answer, sources, self.app["numeric_check"]["min_digits"])
+        trace.step("generate", ms=int((time.monotonic() - t1) * 1000), model=meta.get("model"), budget=over or "ok")
+
+        # ---- output rails ----
+        t2 = time.monotonic()
+        report = guardrails.check_output(
+            answer,
+            hits,
+            sources,
+            messages[0]["content"],
+            embed=self._embed_fn(),
+            hit_vectors=self._hit_vectors(hits),
+            min_digits=self.app["numeric_check"]["min_digits"],
+        )
+        if report.replaced:
+            metrics.REFUSALS.labels(reason="leakage").inc()
+            answer = L["refuse_injection"]
+            yield {"event": "replace", "data": {"text": answer}}
+        elif report.answer != answer:
+            answer = report.answer
+            yield {"event": "replace", "data": {"text": answer}}
+        missing = report.unsupported_numbers
         if missing and meta.get("model") != "extractive-fallback":
             metrics.UNSUPPORTED_NUMBERS.inc(len(missing))
             yield {
                 "event": "notice",
                 "data": {"kind": "unverified_numbers", "text": L["numbers_flag"].format(numbers=", ".join(missing))},
             }
+        if advice or report.advice:
+            yield {"event": "notice", "data": {"kind": "advice", "text": L["advice_note"]}}
+        yield {"event": "guardrails", "data": report.to_event()}
+        trace.step("guardrails", ms=int((time.monotonic() - t2) * 1000), status=report.status)
+        if report.replaced:
+            yield {"event": "model", "data": {"model": meta.get("model"), "verified": False}}
+            return
         stale_days = self.rcfg["stale_after_days"]
         cited = self._cited(answer, hits)
         if any(_age_days(h.fetched_at) > stale_days for h in cited):
@@ -253,7 +374,19 @@ class Concierge:
                 for h in cited
             ],
         }
+        followups = self._followups(graph, cited, L, lang)
+        if followups:
+            yield {"event": "followups", "data": followups}
         yield {"event": "model", "data": {"model": meta.get("model"), "verified": not missing}}
+
+    def _embed_fn(self):
+        model = self.kb.embedder()
+        return None if model is None else model.embed
+
+    def _hit_vectors(self, hits: list[Hit]) -> np.ndarray | None:
+        if self.kb.vectors is None or not hits:
+            return None
+        return np.asarray(self.kb.vectors[[self.kb.row_index(h.rowid) for h in hits]], dtype=np.float32)
 
     def _format_sources(self, hits: list[Hit], lang: str) -> str:
         blocks = []
@@ -265,7 +398,7 @@ class Concierge:
             )
         return "\n".join(blocks)
 
-    def _messages(self, text: str, sources: str, req: ChatRequest, lang: str) -> list[dict]:
+    def _messages(self, text: str, sources: str, req: ChatRequest, lang: str, relations: str = "(none)") -> list[dict]:
         brands = config.load("sources")["brands"]
         targets = target_brands()
         parent = next((k for k, v in brands.items() if v.get("role") == "parent"), None)
@@ -286,6 +419,7 @@ class Concierge:
                 "role": "user",
                 "content": config.prompt("answer").format(
                     sources=sources,
+                    relations=relations,
                     question=guard.redact(text),
                     today=datetime.now(UTC).date().isoformat(),
                     stale_days=self.rcfg["stale_after_days"],
@@ -307,3 +441,13 @@ class Concierge:
             snippet = re.sub(r"\s+", " ", h.text)[:320].rsplit(" ", 1)[0]
             lines.append(f"- **{h.title}**: {snippet}… [{i}]")
         return "\n".join(lines)
+
+
+class Trace:
+    """Per-request step log, shown in the UI's "How this answer was built" panel."""
+
+    def __init__(self) -> None:
+        self.steps: list[dict] = []
+
+    def step(self, name: str, **detail) -> None:
+        self.steps.append({"step": name, **{k: v for k, v in detail.items() if v not in (None, [], "")}})

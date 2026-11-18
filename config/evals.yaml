@@ -3,3 +3,4 @@ router_accuracy_min: 0.95
 retrieval_hit_at_k_min: 0.80
 retrieval_mrr_min: 0.55
 refusal_accuracy_min: 0.85
+guardrail_accuracy_min: 0.90
