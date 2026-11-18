@@ -28,4 +28,8 @@ hosting:
   plan: free
   sleeps_after_minutes: 15
   cold_start_seconds: 60
-  keep_warm: GitHub Actions ping every 10 minutes (.github/workflows/keep-warm.yml)
+  # Self-ping: the app requests its own public URL on this interval so the free instance never idles out.
+  # The platform sets the variable below; SELF_PING_URL overrides it, SELF_PING_URL=off disables it.
+  self_ping_minutes: 10
+  external_url_env: RENDER_EXTERNAL_URL
+  keep_warm: GitHub Actions ping every 10 minutes (.github/workflows/keep-warm.yml) as a backup

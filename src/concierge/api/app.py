@@ -72,7 +72,40 @@ async def lifespan(_: FastAPI):
     loop.run_in_executor(None, _load_kb)
     if S.llm.enabled:
         spawn(S.llm.discover())
+    url = self_ping_url()
+    if url:
+        spawn(keep_awake(url, int(APP_CFG.get("hosting", {}).get("self_ping_minutes", 10)) * 60))
     yield
+
+
+def self_ping_url() -> str | None:
+    """The public URL to ping, when running on a host that sleeps idle services.
+
+    The platform's own external-URL variable is preferred; SELF_PING_URL overrides it; SELF_PING_URL=off
+    disables the loop."""
+    hosting = APP_CFG.get("hosting", {})
+    explicit = config.env("SELF_PING_URL")
+    if explicit and explicit.lower() == "off":
+        return None
+    return explicit or config.env(hosting.get("external_url_env", "")) or None
+
+
+async def keep_awake(url: str, every_s: int) -> None:
+    """Free hosting stops a service after a period without inbound traffic. A request to our own public
+    URL goes out through the platform's edge and back in, so it counts as inbound traffic and keeps the
+    demo reachable at any hour. A scheduled external ping (.github/workflows/keep-warm.yml) is the backup
+    that wakes the service after a redeploy."""
+    import httpx
+
+    target = url.rstrip("/") + "/healthz"
+    async with httpx.AsyncClient(timeout=20) as client:
+        while True:
+            await asyncio.sleep(every_s)
+            try:
+                r = await client.get(target, headers={"User-Agent": "concierge-keep-awake"})
+                log.info("keep_awake.ping", status=r.status_code)
+            except Exception as exc:  # never let the loop die on a transient network error
+                log.warning("keep_awake.failed", error=repr(exc)[:200])
 
 
 app = FastAPI(title="concierge", lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -180,6 +213,9 @@ async def ui_config():
                 "name_ar": v.get("name_ar"),
                 "url": v["official_site"],
                 "role": v.get("role", "brand"),
+                "logo": v.get("logo"),
+                "logo_color": v.get("logo_color"),
+                "logo_color_dark": v.get("logo_color_dark"),
                 "tagline": v.get("tagline"),
                 "tagline_ar": v.get("tagline_ar"),
                 "coverage": v.get("coverage"),

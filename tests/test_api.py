@@ -192,3 +192,15 @@ def test_unsafe_request_is_blocked_without_retrieval(client):
     d = dict(evs)
     assert d["meta"]["intent"] == "blocked"
     assert "retrieval" not in d and "citations" not in d
+
+
+def test_self_ping_url_resolution(monkeypatch):
+    from concierge.api import app as app_mod
+
+    monkeypatch.delenv("SELF_PING_URL", raising=False)
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    assert app_mod.self_ping_url() is None
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://demo.example.com")
+    assert app_mod.self_ping_url() == "https://demo.example.com"
+    monkeypatch.setenv("SELF_PING_URL", "off")
+    assert app_mod.self_ping_url() is None
