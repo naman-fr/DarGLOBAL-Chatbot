@@ -13,7 +13,10 @@ retention_days:
   feedback: 180
 suggestions:
   count: 6
-  per_brand: 2
+  per_brand: 3
+  # Routine filings and navigation pages make poor starter questions.
+  skip_title_words: ["agm", "notice", "publication", "about us", "contact", "board change", "fact sheet", "key figures",
+                     "key facts", "portfolio", "investor relations", "history", "overview", "references"]
 numeric_check:
   min_digits: 3                   # numbers shorter than this (bed counts, list markers) are not checked
 crm:

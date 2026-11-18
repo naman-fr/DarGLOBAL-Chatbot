@@ -283,14 +283,22 @@ class KB:
         out: list[dict] = []
         for brand in config.load("sources")["brands"]:
             rows = con.execute(
-                "SELECT brand, kind, MIN(lang) AS lang, title, json_extract(body, '$.section') AS section FROM records WHERE brand = ? AND lang = ? "
+                "SELECT brand, kind, MIN(lang) AS lang, title, json_extract(body, '$.section') AS section FROM records WHERE brand = ? AND (lang = ? OR ? = 'ar') "
                 "AND kind IN ('faq','article','corporate') AND LENGTH(title) BETWEEN 8 AND 90 "
                 "GROUP BY title ORDER BY RANDOM() LIMIT ?",
-                (brand, lang, per_brand),
+                # Most sources are English; Arabic chips reuse their titles (mostly proper nouns)
+                # inside Arabic question templates.
+                (brand, lang, lang, per_brand),
             ).fetchall()
-            out += [
-                {**dict(r), "title": r["title"].split(" — ")[0] if r["kind"] != "faq" else r["title"]} for r in rows
-            ]
+            skip = [w.lower() for w in config.load("app")["suggestions"]["skip_title_words"]]
+            for r in rows:
+                parts = r["title"].split(" — ")
+                # Encyclopaedia sections are titled "Page — Section"; the section names the topic.
+                title = parts[-1] if len(parts) > 1 else parts[0]
+                title = title.split(" | ")[0].strip()
+                if r["kind"] != "faq" and any(w in title.lower() for w in skip):
+                    continue
+                out.append({**dict(r), "title": title})
         listing_brand = config.load("router")["listing_brand"]
         L = config.locale(lang)
         for r in con.execute(
