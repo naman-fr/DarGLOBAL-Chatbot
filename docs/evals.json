@@ -77,11 +77,112 @@
     }
   },
   "router_misses": [],
-  "seconds": 6.3,
+  "seconds": 5.8,
   "gates": {
     "router_accuracy": true,
     "hit@k": true,
     "mrr": true,
     "refusal_accuracy": true
+  },
+  "live": {
+    "url": "https://treasure-region-preventing-officer.trycloudflare.com",
+    "n": 12,
+    "answered_with_citation": 1.0,
+    "refusal_correct": 1.0,
+    "unverified_number_rate": 0.0,
+    "llm_served_rate": 0.917,
+    "latency_p50_s": 12.32,
+    "latency_p95_s": 51.59,
+    "models": [
+      "dots-studio/dots-3-note-preview:free",
+      "extractive-fallback",
+      "nvidia/nemotron-3-ultra-550b-a55b:free"
+    ],
+    "rows": [
+      {
+        "q": "What were DarGlobal's half year 2026 results?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "How much revenue did Dar Global report for H1 2026?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "What were Dar Global's full year 2024 results?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "What return on equity did DarGlobal achieve in 2025?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "What is DarGlobal's gross development value?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "Tell me about the Trump Tower Jeddah launch",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "Who is the chairman of Dar Global?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "Who is the CEO of DarGlobal?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "When was DarGlobal listed on the London Stock Exchange?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "What did DarGlobal acquire in Jeddah?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free"
+      },
+      {
+        "q": "How much is DarGlobal investing in Saudi Arabia?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "dots-studio/dots-3-note-preview:free"
+      },
+      {
+        "q": "What growth capital did Dar Global secure?",
+        "should_refuse": false,
+        "refused": false,
+        "unverified": false,
+        "model": "extractive-fallback"
+      }
+    ]
   }
 }

@@ -30,3 +30,17 @@ KB `20261118-9f2b23d6`. Golden set: 147 questions (71 curated, 76 generated from
 | hybrid_1_1 | 0.746 | 0.921 | 0.965 | 0.835 |
 | hybrid_1_1.2 | 0.754 | 0.921 | 0.947 | 0.835 |
 | hybrid_1_2 | 0.746 | 0.921 | 0.947 | 0.826 |
+
+## Live run
+
+Target: `https://treasure-region-preventing-officer.trycloudflare.com`, 12 questions.
+
+| Metric | Value |
+|---|---|
+| answered_with_citation | 1.0 |
+| refusal_correct | 1.0 |
+| unverified_number_rate | 0.0 |
+| llm_served_rate | 0.917 |
+| latency_p50_s | 12.32 |
+| latency_p95_s | 51.59 |
+| models served | dots-studio/dots-3-note-preview:free, extractive-fallback, nvidia/nemotron-3-ultra-550b-a55b:free |

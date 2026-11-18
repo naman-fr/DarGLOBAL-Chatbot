@@ -356,6 +356,6 @@ if WEB_DIR.exists():
     app.mount("/assets", StaticFiles(directory=WEB_DIR), name="assets")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def index():
     return FileResponse(WEB_DIR / "index.html", headers={"Cache-Control": "no-cache"})
