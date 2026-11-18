@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    image: property-concierge:latest
+    ports: ["8000:8000"]
+    env_file: [.env]
+    mem_limit: 512m
+    cpus: 0.5
+    volumes:
+      - runtime:/app/data/runtime
+    restart: unless-stopped
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    ports: ["9090:9090"]
+    configs:
+      - source: prometheus
+        target: /etc/prometheus/prometheus.yml
+
+configs:
+  prometheus:
+    content: |
+      scrape_configs:
+        - job_name: concierge
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["app:8000"]
+
+volumes:
+  runtime:

@@ -1,0 +1,18 @@
+# Render blueprint: one Docker web service on the free plan.
+services:
+  - type: web
+    name: property-concierge
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false          # set in the dashboard; never committed
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: CRM_WEBHOOK_URL
+        sync: false
