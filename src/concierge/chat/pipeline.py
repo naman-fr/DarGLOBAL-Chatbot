@@ -199,6 +199,7 @@ class Concierge:
     def _graph_event(self, graph: GraphContext, hits: list[Hit], lang: str) -> dict:
         g = self.kb.graph
         facts = g.facts(graph, [h.rowid for h in hits], lang)
+        rel_ar = config.load("graph").get("relation_labels_ar", {}) if lang == "ar" else {}
         return {
             "event": "graph",
             "data": {
@@ -211,7 +212,7 @@ class Concierge:
                     {
                         "a": f.a_name,
                         "a_type": f.a_type,
-                        "label": f.label,
+                        "label": rel_ar.get(f.label, f.label),
                         "b": f.b_name,
                         "b_type": f.b_type,
                         "cites": f.cites,

@@ -22,3 +22,10 @@ numeric_check:
 crm:
   webhook_env: CRM_WEBHOOK_URL
   timeout_seconds: 8
+# Shown in the UI footer and the "waking up" screen so visitors know why a first load can be slow.
+hosting:
+  provider: Render
+  plan: free
+  sleeps_after_minutes: 15
+  cold_start_seconds: 60
+  keep_warm: GitHub Actions ping every 10 minutes (.github/workflows/keep-warm.yml)

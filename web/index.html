@@ -4,18 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Property Concierge</title>
-  <meta name="description" content="Independent technical demo: a grounded real-estate concierge chatbot.">
+  <meta name="description" content="Independent technical demo: a grounded, bilingual real-estate concierge with knowledge-graph retrieval and answer verification.">
+  <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1117" media="(prefers-color-scheme: dark)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Inter:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23161b26'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='18' fill='%23cdae72' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E">
   <script src="/assets/app.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#composer-input" data-i18n="send">Skip to input</a>
+
   <header class="top">
-    <div class="wordmark" id="wordmark" aria-label="Concierge">Concierge</div>
-    <div class="top-actions">
-      <button type="button" class="ghost" id="new-chat" data-i18n="new_chat">New chat</button>
-      <button type="button" class="ghost" id="privacy-btn" data-i18n="privacy_title">Privacy</button>
-      <button type="button" class="ghost lang" id="lang-toggle" data-i18n="language_toggle">العربية</button>
+    <div class="top-inner">
+      <a class="brandmark" href="/" aria-label="Home">
+        <span class="monogram" id="monogram" aria-hidden="true">C</span>
+        <span class="wordmark" id="wordmark">Concierge</span>
+      </a>
+      <nav class="top-actions" aria-label="Primary">
+        <button type="button" class="link-btn" id="graph-btn" data-i18n="nav_graph">Knowledge graph</button>
+        <button type="button" class="link-btn" id="about-btn" data-i18n="nav_about">About</button>
+        <button type="button" class="link-btn" id="new-chat" data-i18n="new_chat">New chat</button>
+        <button type="button" class="lang-btn" id="lang-toggle" data-i18n="language_toggle">العربية</button>
+      </nav>
     </div>
   </header>
 
@@ -24,42 +37,91 @@
     <button type="button" id="consent-ok" data-i18n="consent_ok">OK</button>
   </div>
 
-  <main class="shell">
-    <section class="intro" id="intro">
-      <h1 data-i18n="app_title">Property Concierge</h1>
-      <p class="tagline" data-i18n="tagline"></p>
-      <div class="brands" id="brand-row"></div>
-      <h2 class="label" data-i18n="suggested">Try asking</h2>
-      <div class="chips" id="suggestions" role="list"></div>
-    </section>
-
-    <div class="waking" id="waking" role="status" hidden>
-      <span class="spinner" aria-hidden="true"></span><span id="waking-text" data-i18n="waking"></span>
+  <div class="waking" id="waking" role="status" hidden>
+    <div class="waking-card">
+      <span class="ring" aria-hidden="true"></span>
+      <div>
+        <p class="waking-title" data-i18n="waking_title">Preparing the concierge</p>
+        <p class="waking-text" data-i18n="waking"></p>
+        <p class="waking-elapsed" id="waking-elapsed"></p>
+      </div>
     </div>
+  </div>
+
+  <main class="shell" id="main">
+    <section class="intro" id="intro">
+      <p class="eyebrow" data-i18n="eyebrow">Private real-estate concierge</p>
+      <h1 class="display" data-i18n="hero_title">Considered answers, drawn only from the record.</h1>
+      <p class="lede" data-i18n="tagline"></p>
+
+      <dl class="stats" id="stats" aria-label="Knowledge base"></dl>
+
+      <section class="block" aria-labelledby="brands-h">
+        <h2 class="section-label" id="brands-h" data-i18n="brands_title">Coverage</h2>
+        <div class="brand-cards" id="brand-row"></div>
+      </section>
+
+      <section class="block" aria-labelledby="sugg-h">
+        <h2 class="section-label" id="sugg-h" data-i18n="suggested">Begin with a question</h2>
+        <div class="suggestions" id="suggestions" role="list"></div>
+      </section>
+
+      <section class="block" aria-labelledby="how-h">
+        <h2 class="section-label" id="how-h" data-i18n="how_title">How each answer is made</h2>
+        <ol class="how" id="how"></ol>
+      </section>
+    </section>
 
     <ol class="thread" id="thread" aria-live="polite" aria-label="Conversation"></ol>
   </main>
 
-  <form class="composer" id="composer" autocomplete="off">
-    <label class="sr" for="composer-input" data-i18n="placeholder">Message</label>
-    <textarea id="composer-input" rows="1" maxlength="800" required></textarea>
-    <button type="submit" id="send" data-i18n="send">Send</button>
-  </form>
+  <div class="composer-wrap">
+    <form class="composer" id="composer" autocomplete="off">
+      <label class="sr" for="composer-input" data-i18n="placeholder">Message</label>
+      <textarea id="composer-input" rows="1" maxlength="800" required></textarea>
+      <button type="submit" id="send" aria-label="Send">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+  </div>
 
   <footer class="foot">
-    <p data-i18n="disclaimer"></p>
-    <p class="muted"><span data-i18n="footer"></span> <span id="kb-version"></span></p>
+    <div class="foot-inner">
+      <p class="hosting" id="hosting-note"></p>
+      <p data-i18n="disclaimer"></p>
+      <p class="muted"><span data-i18n="footer"></span> <span id="kb-version"></span>
+        · <button type="button" class="inline-link" id="privacy-btn" data-i18n="privacy_title">Privacy</button></p>
+    </div>
   </footer>
 
   <dialog id="privacy-dialog" aria-labelledby="privacy-h">
-    <h2 id="privacy-h" data-i18n="privacy_title">Privacy</h2>
+    <h2 id="privacy-h" class="dialog-title" data-i18n="privacy_title">Privacy</h2>
     <p data-i18n="privacy"></p>
-    <form method="dialog"><button data-i18n="consent_ok">OK</button></form>
+    <form method="dialog" class="actions end"><button class="btn" data-i18n="consent_ok">OK</button></form>
+  </dialog>
+
+  <dialog id="about-dialog" aria-labelledby="about-h">
+    <h2 id="about-h" class="dialog-title" data-i18n="about_title">About this demo</h2>
+    <p data-i18n="about_body"></p>
+    <p class="muted" id="about-hosting"></p>
+    <form method="dialog" class="actions end"><button class="btn" data-i18n="consent_ok">OK</button></form>
+  </dialog>
+
+  <dialog id="graph-dialog" class="wide" aria-labelledby="graph-h">
+    <div class="dialog-head">
+      <div>
+        <h2 id="graph-h" class="dialog-title" data-i18n="graph_title">Knowledge graph</h2>
+        <p class="muted" data-i18n="graph_hint"></p>
+      </div>
+      <form method="dialog"><button class="icon-btn" aria-label="Close">×</button></form>
+    </div>
+    <div class="legend" id="graph-legend"></div>
+    <div class="graph-stage" id="graph-stage"></div>
   </dialog>
 
   <dialog id="lead-dialog" aria-labelledby="lead-h">
     <form id="lead-form" novalidate>
-      <h2 id="lead-h" data-i18n="lead_title">Talk to the team</h2>
+      <h2 id="lead-h" class="dialog-title" data-i18n="lead_title">Talk to the team</h2>
       <label><span data-i18n="lead_name">Name</span><input name="name" required maxlength="80" autocomplete="name"></label>
       <label><span data-i18n="lead_contact">Email or phone</span><input name="contact" required maxlength="120" autocomplete="email"></label>
       <label><span data-i18n="lead_brand">Company</span><select name="brand" id="lead-brand"></select></label>
@@ -78,8 +140,8 @@
       <label class="check"><input type="checkbox" name="consent"><span data-i18n="lead_consent"></span></label>
       <p class="form-msg" id="lead-msg" role="alert"></p>
       <div class="actions">
-        <button type="button" class="ghost" id="lead-cancel">×</button>
-        <button type="submit" data-i18n="lead_submit">Send</button>
+        <button type="button" class="link-btn" id="lead-cancel">×</button>
+        <button type="submit" class="btn" data-i18n="lead_submit">Send</button>
       </div>
     </form>
   </dialog>

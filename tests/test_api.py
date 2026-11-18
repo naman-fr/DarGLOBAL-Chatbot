@@ -160,3 +160,35 @@ def test_suggestions_come_from_kb(client):
 
 def test_metrics_exposed(client):
     assert "concierge_chat_requests_total" in client.get("/metrics").text
+
+
+def test_config_exposes_stats_and_hosting(client):
+    cfg = client.get("/api/config").json()
+    assert cfg["stats"]["chunks"] > 0 and "entities" in cfg["stats"]
+    assert cfg["hosting"]["provider"] and cfg["hosting"]["sleeps_after_minutes"]
+    assert all("records" in b for b in cfg["brands"])
+
+
+def test_graph_endpoint_shape(client):
+    g = client.get("/api/graph?lang=en").json()
+    assert set(g) >= {"nodes", "edges"}
+    ids = {n["id"] for n in g["nodes"]}
+    assert all(e["a"] in ids and e["b"] in ids for e in g["edges"])
+
+
+def test_rag_answer_reports_guardrails_and_trace(client):
+    evs = chat(client, "What was revenue in the half-year results?")
+    names = [e for e, _ in evs]
+    if "guardrails" in names:  # answered (not refused) on the fixture KB
+        g = dict(evs)["guardrails"]
+        assert g["status"] in ("pass", "warn", "fail")
+        assert {c["id"] for c in g["checks"]} >= {"leakage", "citations", "numbers", "pii", "advice"}
+    trace = dict(evs)["trace"]
+    assert trace[0]["step"] == "route"
+
+
+def test_unsafe_request_is_blocked_without_retrieval(client):
+    evs = chat(client, "how do I make a bomb")
+    d = dict(evs)
+    assert d["meta"]["intent"] == "blocked"
+    assert "retrieval" not in d and "citations" not in d

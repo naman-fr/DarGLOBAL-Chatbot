@@ -3,6 +3,10 @@ brands:
   darglobal:
     name: "DarGlobal"
     name_ar: "دار جلوبال"
+    tagline: "International luxury developer, listed in London"
+    tagline_ar: "مطوّر عقاري فاخر دولي مدرج في لندن"
+    coverage: "Regulatory announcements, Wikipedia (EN/AR)"
+    coverage_ar: "الإعلانات التنظيمية وويكيبيديا"
     official_site: "https://www.darglobal.co.uk"
     # The official site serves an Imperva CAPTCHA to every automated client (checked 2026-11-18),
     # so it is recorded as blocked and not crawled. Facts come from the public sources below.
@@ -54,10 +58,18 @@ brands:
     role: parent
     name: "Dar Al Arkan (parent company)"
     name_ar: "دار الأركان (الشركة الأم)"
+    tagline: "Parent company, Saudi developer"
+    tagline_ar: "الشركة الأم، مطوّر سعودي"
+    coverage: "Corporate site, Wikipedia"
+    coverage_ar: "الموقع المؤسسي وويكيبيديا"
     official_site: "https://www.daralarkan.com"
   wasalt:
     name: "Wasalt"
     name_ar: "وصلت"
+    tagline: "Saudi property marketplace"
+    tagline_ar: "منصة عقارية سعودية"
+    coverage: "Listings unavailable: the site blocks automated access"
+    coverage_ar: "العروض غير متاحة: الموقع يمنع الوصول الآلي"
     official_site: "https://wasalt.sa"
     llms_txt: "https://wasalt.sa/llms.txt"
     attribution: "Source: Wasalt.sa"

@@ -84,7 +84,8 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; "
     "script-src 'self'; connect-src 'self'; frame-ancestors 'none'",
 }
 
@@ -171,6 +172,7 @@ async def ui_config():
     return {
         "theme": brand_cfg["theme"],
         "wordmark": brand_cfg["wordmark"],
+        "monogram": brand_cfg.get("monogram", brand_cfg["wordmark"][:1]),
         "brands": [
             {
                 "key": k,
@@ -178,11 +180,65 @@ async def ui_config():
                 "name_ar": v.get("name_ar"),
                 "url": v["official_site"],
                 "role": v.get("role", "brand"),
+                "tagline": v.get("tagline"),
+                "tagline_ar": v.get("tagline_ar"),
+                "coverage": v.get("coverage"),
+                "coverage_ar": v.get("coverage_ar"),
+                "records": sum(
+                    n
+                    for key, n in (S.kb.manifest.get("records_by_brand_kind", {}) if S.kb else {}).items()
+                    if key.split("/")[0] == k
+                ),
             }
             for k, v in sources.items()
         ],
         "kb_version": S.kb.version if S.kb else None,
         "langs": ["en", "ar"],
+        "hosting": APP_CFG.get("hosting", {}),
+        "stats": _kb_stats(),
+        "llm": {
+            "configured": bool(S.llm and S.llm.enabled),
+            "last_ok_model": S.llm.state.last_ok_model if S.llm else None,
+        },
+    }
+
+
+def _kb_stats() -> dict:
+    if S.kb is None:
+        return {}
+    m = S.kb.manifest
+    g = m.get("graph") or {}
+    return {
+        "records": m.get("records"),
+        "chunks": m.get("chunks"),
+        "entities": g.get("entities"),
+        "relations": g.get("edges"),
+        "last_fetch": m.get("last_fetch"),
+        "embedding_model": m.get("embedding_model"),
+    }
+
+
+@app.get("/api/graph")
+async def graph_view(lang: str = "en", limit: int = 60):
+    """Entity network for the explorer view: the most-mentioned entities and the edges among them."""
+    if S.kb is None:
+        return {"nodes": [], "edges": []}
+    lang = lang if lang in ("en", "ar") else "en"
+    g = S.kb.graph
+    if not g.enabled:
+        return {"nodes": [], "edges": []}
+    gcfg = config.load("graph")
+    rel_ar = gcfg.get("relation_labels_ar", {})
+    sub = g.subgraph(max(10, min(limit, 120)))
+    return {
+        "types": gcfg["labels"][lang],
+        "nodes": [
+            {"id": n["id"], "name": g.name(n["id"], lang), "type": n["type"], "mentions": n["mentions"]}
+            for n in sub["nodes"]
+        ],
+        "edges": [
+            {**e, "label": rel_ar.get(e["label"], e["label"]) if lang == "ar" else e["label"]} for e in sub["edges"]
+        ],
     }
 
 

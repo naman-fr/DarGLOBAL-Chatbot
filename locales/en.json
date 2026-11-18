@@ -1,16 +1,16 @@
 {
   "dir": "ltr",
   "app_title": "Property Concierge",
-  "tagline": "Answers about two related real-estate brands, grounded in their public information.",
+  "tagline": "Ask about developments, partner brands, locations and results. Every answer is grounded in public filings and reference sources, cited, dated and checked before you read it.",
   "placeholder": "Ask about projects, results, listings or buying in Saudi Arabia…",
   "send": "Send",
   "language_toggle": "العربية",
   "new_chat": "New chat",
-  "suggested": "Try asking",
+  "suggested": "Begin with a question",
   "sources": "Sources",
   "as_of": "as of",
   "model": "Model",
-  "waking": "Waking the server up — free hosting sleeps when idle. This can take up to a minute.",
+  "waking": "The server is waking up. Free hosting sleeps when idle; this usually takes under a minute.",
   "ready_error": "The server is not responding yet. Retrying…",
   "error_generic": "Something went wrong on our side. Please try again in a moment.",
   "rate_limited": "You're sending messages quickly. Please wait a few seconds and try again.",
@@ -78,5 +78,65 @@
     "company": "What are the latest announcements from {name}?",
     "person": "What has {name} said recently?",
     "exchange": "Which companies are listed on the {name}?"
-  }
+  },
+  "eyebrow": "Private real-estate concierge",
+  "hero_title": "Considered answers, drawn only from the record.",
+  "stat_records": "source documents",
+  "stat_chunks": "indexed passages",
+  "stat_entities": "graph entities",
+  "stat_relations": "relations",
+  "stat_updated": "last collected",
+  "brands_title": "Coverage",
+  "brand_records": "{n} documents",
+  "how_title": "How each answer is made",
+  "how_steps": [
+    {
+      "t": "Understand",
+      "d": "Language, intent and the companies involved are detected; unsafe or manipulative input is stopped here."
+    },
+    {
+      "t": "Retrieve",
+      "d": "Keyword search, multilingual semantic search and the knowledge graph each rank passages; the rankings are fused."
+    },
+    {
+      "t": "Compose",
+      "d": "A free open model writes the answer from those passages only, with a citation after every fact."
+    },
+    {
+      "t": "Verify",
+      "d": "Each sentence is checked against its sources, along with figures, citations, privacy and brand separation."
+    }
+  ],
+  "nav_graph": "Knowledge graph",
+  "nav_about": "About",
+  "graph_title": "Knowledge graph",
+  "graph_hint": "Entities found in the sources and the relations between them. Select an entity to ask about it.",
+  "graph_empty": "The knowledge graph is not available in this build.",
+  "checks_title": "Answer checks",
+  "check_names": {
+    "leakage": "Prompt integrity",
+    "citations": "Citations",
+    "grounding": "Grounded in sources",
+    "numbers": "Figures verified",
+    "pii": "Privacy",
+    "brand_separation": "Brand separation",
+    "advice": "No financial advice"
+  },
+  "connections_title": "Connections used",
+  "trace_title": "How this answer was built",
+  "trace_steps": {
+    "route": "Understood",
+    "retrieve": "Retrieved",
+    "generate": "Composed",
+    "guardrails": "Verified"
+  },
+  "followups_title": "Continue with",
+  "hosting_note": "Hosted on {provider} ({plan} tier). After {minutes} minutes without visitors the server sleeps, and the first request can take up to {seconds} seconds while it wakes. A scheduled ping keeps it warm most of the time.",
+  "waking_title": "Preparing the concierge",
+  "waking_elapsed": "{s}s elapsed",
+  "about_title": "About this demo",
+  "about_body": "An independent technical demonstration of a grounded, bilingual retrieval system. Sources were collected politely from public pages whose robots.txt allows it; sites that put automated visitors behind bot checks were not worked around. Retrieval combines SQLite FTS5 keyword search, multilingual MiniLM embeddings and an evidence-backed entity graph, fused with reciprocal-rank fusion. Answers come from free OpenRouter models with automatic fallback, then pass through output guardrails before they are shown.",
+  "model_label": "Composed by",
+  "verified_label": "Verified",
+  "review_label": "Review advised"
 }
