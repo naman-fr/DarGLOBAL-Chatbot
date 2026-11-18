@@ -85,9 +85,7 @@ def retrieval_metrics(kb: KB, router: Router, items: list[dict], k: int) -> dict
     for it in items:
         route = router.route(it["q"])
         brands = [b for b in route.brands if b in config.load("sources")["brands"]]
-        hits = kb.search(
-            it["q"], k=k, brand=brands[0] if len(brands) == 1 else None, graph=kb.graph_context(it["q"])
-        )
+        hits = kb.search(it["q"], k=k, brand=brands[0] if len(brands) == 1 else None, graph=kb.graph_context(it["q"]))
         per_lang[it["lang"]].append(rank_of(hits, it["expect_url"]))
     out = {}
     for lang, ranks in list(per_lang.items()) + [("all", [r for v in per_lang.values() for r in v])]:
@@ -108,7 +106,11 @@ def guardrail_suite() -> dict:
     from concierge.chat import guardrails
 
     router = Router()
-    rows = [json.loads(line) for line in (ROOT / "evals" / "guardrail_cases.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line)
+        for line in (ROOT / "evals" / "guardrail_cases.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     ok = 0
     misses = []
     for r in rows:
