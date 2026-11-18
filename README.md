@@ -14,9 +14,10 @@ carries citations, "as of" dates, and a visible set of guardrail checks.
 > while the container starts; the page shows a "Preparing the concierge" screen with a timer, then
 > loads normally.
 >
-> To keep it awake for reviewers, a scheduled GitHub Action (`.github/workflows/keep-warm.yml`) pings
-> `/readyz` every 10 minutes. GitHub runs scheduled jobs on a best-effort basis, so an occasional cold
-> start is still possible. See [Availability](#availability) for the options that remove it entirely.
+> To keep it awake for reviewers, the app pings its own public URL every 10 minutes. The request goes out
+> through Render's edge and back in, so it counts as inbound traffic. A scheduled GitHub Action
+> (`.github/workflows/keep-warm.yml`) is the backup that wakes it after a redeploy. A cold start should
+> only happen right after a deploy or a platform restart. See [Availability](#availability).
 
 Things to try:
 - "Which projects does DarGlobal have in Oman?"
@@ -173,15 +174,18 @@ CI (`.github/workflows/ci.yml`) runs on every push:
 
 Free hosting sleeps when idle. From cheapest to most robust:
 
-1. **Keep-warm ping (on by default).** `.github/workflows/keep-warm.yml` hits `/readyz` every 10 minutes.
+1. **Self-ping (on by default).** On Render the app reads `RENDER_EXTERNAL_URL` and requests its own
+   `/healthz` every 10 minutes (`config/app.yaml` → `hosting`). Set `SELF_PING_URL=off` to disable it.
+2. **Keep-warm ping (on by default, backup).** `.github/workflows/keep-warm.yml` hits `/readyz` every
+   10 minutes, which also wakes the service after a redeploy.
    - One always-on service uses about 744 of the 750 free instance hours Render gives each workspace
      per month.
    - GitHub may delay scheduled runs, and it pauses them after 60 days without commits.
    - Set the repository variable `LIVE_URL` if the service URL changes.
-2. **External monitor (free, recommended alongside).** Add an HTTP monitor for
+3. **External monitor (free, optional).** Add an HTTP monitor for
    `https://property-concierge.onrender.com/readyz` at a 5-minute interval in UptimeRobot,
    Better Stack or cron-job.org. It doubles as an uptime record.
-3. **No sleep at all.** Switch the Render service to the Starter instance type. It never sleeps and has
+4. **No sleep at all.** Switch the Render service to the Starter instance type. It never sleeps and has
    more CPU, which also shortens model-independent latency.
 
 ## Limitations and next steps
