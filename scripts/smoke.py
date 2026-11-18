@@ -43,6 +43,8 @@ def chat(base: str, q: str) -> dict:
 
 
 def main(base: str) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows consoles default to cp1252
     base = base.rstrip("/")
     failures = []
     for _ in range(30):  # free hosts sleep; give the cold start time
