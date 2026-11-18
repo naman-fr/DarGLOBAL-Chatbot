@@ -1,0 +1,37 @@
+# OpenRouter settings. Model IDs are discovered at runtime; these lists only steer the choice.
+base_url: "https://openrouter.ai/api/v1"
+discovery_refresh_hours: 24
+min_context: 32000
+require_text_output: true
+# Ordered regex preferences. Earlier patterns win; within a pattern larger context wins.
+prefer:
+  - "^google/gemma-4-31b"
+  - "^google/gemma-4"
+  - "^nvidia/nemotron-3-ultra"
+  - "^baidu/ernie"
+  - "^inclusionai/ling"
+  - "^nvidia/nemotron-3.5-super"
+  - "^dots-studio/"
+  - "^thinkingmachines/"
+deny:
+  - "lyria"          # music models
+  - "code"           # coding-tuned models answer prose poorly
+  - "1\\.7b"         # too small for grounded Arabic answers
+  - "omni"
+  - "reasoning"      # long hidden reasoning burns the free-tier latency budget
+# Used if discovery fails entirely (network error at boot). Discovery replaces it when it works.
+static_fallback: ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"]
+last_resort: "openrouter/free"
+models_per_request: 3        # OpenRouter `models` fallback array size
+max_attempts: 3              # client-side groups tried before giving up
+temperature: 0.2
+max_tokens: 700
+timeout_seconds: 45
+first_token_timeout_seconds: 25
+breaker_failures: 2          # failures before a model is benched
+breaker_cooldown_seconds: 300
+budget:
+  global_requests_per_day: 900
+  session_requests_per_hour: 30
+app_referer: "https://github.com/"   # OpenRouter attribution headers; override with APP_URL
+app_title: "Real-estate concierge demo"
