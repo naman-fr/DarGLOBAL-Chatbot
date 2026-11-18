@@ -1,0 +1,39 @@
+name: keep-warm
+
+# Render's free plan stops a web service after 15 minutes without traffic, and the next visitor waits
+# about a minute while it starts. Pinging the health endpoint every 10 minutes keeps the demo warm so
+# reviewers can open it at any time. One always-on free service uses about 744 of the 750 free
+# instance hours Render gives each workspace per month.
+#
+# GitHub runs scheduled workflows on a best-effort basis (runs can be delayed at busy times) and
+# pauses them in public repositories after 60 days without commits. For a stricter guarantee add an
+# external monitor as well (see README, "Availability").
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health and readiness
+        env:
+          URL: ${{ vars.LIVE_URL || 'https://property-concierge.onrender.com' }}
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 60 "$URL/readyz" || true)
+            echo "attempt $i: readyz -> $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "service did not become ready" && exit 1
