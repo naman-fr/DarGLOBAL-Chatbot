@@ -129,6 +129,7 @@ class OpenRouter:
                 "stream": True,
                 "temperature": self.cfg["temperature"],
                 "max_tokens": self.cfg["max_tokens"],
+                "reasoning": self.cfg["reasoning"],
             }
             started = time.monotonic()
             got_text = False
