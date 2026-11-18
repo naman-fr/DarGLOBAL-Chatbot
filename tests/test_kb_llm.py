@@ -97,6 +97,34 @@ def test_stream_falls_back_to_next_group(monkeypatch):
     assert meta["model"] == "acme/big:free"
 
 
+def test_env_strips_literal_quotes(monkeypatch):
+    from concierge import config
+
+    monkeypatch.setenv("SOME_KEY", '"abc123"')
+    assert config.env("SOME_KEY") == "abc123"
+
+
+def test_auth_error_fails_fast_without_benching(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "bad-key")
+    calls = []
+
+    def handler(request):
+        if request.url.path.endswith("/models"):
+            return httpx.Response(200, json=MODELS)
+        calls.append(1)
+        return httpx.Response(401, json={"error": "Missing Authentication header"})
+
+    client = llm_mod.OpenRouter()
+    client.client = _client(handler)
+
+    async def run():
+        return [d async for d in client.stream([{"role": "user", "content": "hi"}], {})]
+
+    with pytest.raises(llm_mod.LLMUnavailable):
+        asyncio.run(run())
+    assert len(calls) == 1 and not client.state.breakers
+
+
 def test_stream_raises_when_everything_fails(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
 

@@ -38,4 +38,9 @@ def locale(lang: str) -> dict[str, Any]:
 
 def env(name: str, default: str | None = None) -> str | None:
     value = os.environ.get(name)
+    if value is not None:
+        # docker --env-file and some dashboards keep quotes literally: KEY="abc" arrives as '"abc"'
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
     return value if value not in (None, "") else default

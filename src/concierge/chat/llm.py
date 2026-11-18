@@ -156,9 +156,12 @@ class OpenRouter:
                 if got_text:  # partial answer already streamed; do not splice another model's text into it
                     raise LLMUnavailable(f"stream broke mid-answer: {exc}") from exc
                 last = str(exc)
-                log.warning("llm.attempt_failed", group=group, error=last[:200])
-                self._fail([m for m in group if m != self.cfg["last_resort"]], last)
                 status = getattr(getattr(exc, "response", None), "status_code", 0)
+                log.warning("llm.attempt_failed", group=group, status=status, error=last[:200])
+                if status in (401, 402, 403):  # account problem, not a model problem: no retries, no benching
+                    self.state.last_error = last
+                    raise LLMUnavailable(f"OpenRouter rejected the account (HTTP {status})") from exc
+                self._fail([m for m in group if m != self.cfg["last_resort"]], last)
                 await asyncio.sleep(_backoff(attempt, status))
         raise LLMUnavailable(last or "all models failed")
 
