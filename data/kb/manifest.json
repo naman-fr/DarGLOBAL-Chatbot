@@ -1,0 +1,23 @@
+{
+  "kb_version": "20261118-9f2b23d6",
+  "built_at": "2026-11-18T11:32:59+00:00",
+  "records": 146,
+  "records_by_brand_kind": {
+    "darglobal/article": 102,
+    "darglobal/corporate": 7,
+    "daralarkan/corporate": 29,
+    "daralarkan/article": 8
+  },
+  "chunks": 406,
+  "chunks_by_brand_lang": {
+    "darglobal/en": 350,
+    "daralarkan/en": 53,
+    "daralarkan/ar": 3
+  },
+  "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "embedding_dim": 384,
+  "chunk_chars": 900,
+  "chunk_overlap": 150,
+  "last_fetch": "2026-11-18T10:59:18+00:00",
+  "build_seconds": 32.4
+}
