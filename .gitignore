@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/cache/
+data/processed/quarantine.jsonl
+.pytest_cache/
+*.egg-info/
+node_modules/
+mlruns/
+data/models/
+data/runtime/
+.ruff_cache/

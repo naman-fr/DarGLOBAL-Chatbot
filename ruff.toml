@@ -1,0 +1,9 @@
+line-length = 120
+target-version = "py311"
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "RUF"]
+ignore = ["S101", "S311", "S603", "S607", "RUF001", "RUF002", "RUF003", "S608", "E731", "B008", "E501"]  # the formatter owns line length; long SQL strings stay readable
+[lint.per-file-ignores]
+"tests/*" = ["S", "B017"]
+"scripts/*" = ["S310", "S110", "RUF100"]
+"evals/*" = ["S310", "RUF005", "RUF100"]

@@ -1,0 +1,11 @@
+# Runtime (the image). Pinned exactly; requirements.lock holds the full resolved tree.
+fastapi==0.163.2
+uvicorn[standard]==0.54.0
+httpx==0.28.1
+pydantic==2.14.3
+PyYAML==6.0.3
+numpy==2.4.6
+onnxruntime==1.32.0
+sentencepiece==0.2.3
+prometheus_client==0.26.0
+selectolax==1.0.2
