@@ -4,7 +4,9 @@ A bilingual (English/Arabic) chatbot that answers questions about two related re
 (DarGlobal, the London-listed international developer, and Wasalt, the Saudi property marketplace)
 from data scraped from public sources, with a citation and "as of" date on every answer.
 
-**Live URL:** _see "Deployment" below. Filled in once the Render service is created._
+**Live URL (temporary):** https://treasure-region-preventing-officer.trycloudflare.com. This is a Cloudflare
+quick tunnel to the container on the build machine, up while that machine is on. The permanent Render URL
+replaces it once the service is created (see "Deployment").
 
 Independent technical demo, not affiliated with either company.
 
