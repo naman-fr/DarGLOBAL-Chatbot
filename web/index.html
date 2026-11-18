@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Property Concierge</title>
+  <meta name="description" content="Independent technical demo: a grounded real-estate concierge chatbot.">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#composer-input" data-i18n="send">Skip to input</a>
+  <header class="top">
+    <div class="wordmark" id="wordmark" aria-label="Concierge">Concierge</div>
+    <div class="top-actions">
+      <button type="button" class="ghost" id="new-chat" data-i18n="new_chat">New chat</button>
+      <button type="button" class="ghost" id="privacy-btn" data-i18n="privacy_title">Privacy</button>
+      <button type="button" class="ghost lang" id="lang-toggle" data-i18n="language_toggle">العربية</button>
+    </div>
+  </header>
+
+  <div class="banner" id="consent" hidden>
+    <span data-i18n="consent_banner"></span>
+    <button type="button" id="consent-ok" data-i18n="consent_ok">OK</button>
+  </div>
+
+  <main class="shell">
+    <section class="intro" id="intro">
+      <h1 data-i18n="app_title">Property Concierge</h1>
+      <p class="tagline" data-i18n="tagline"></p>
+      <div class="brands" id="brand-row"></div>
+      <h2 class="label" data-i18n="suggested">Try asking</h2>
+      <div class="chips" id="suggestions" role="list"></div>
+    </section>
+
+    <div class="waking" id="waking" role="status" hidden>
+      <span class="spinner" aria-hidden="true"></span><span id="waking-text" data-i18n="waking"></span>
+    </div>
+
+    <ol class="thread" id="thread" aria-live="polite" aria-label="Conversation"></ol>
+  </main>
+
+  <form class="composer" id="composer" autocomplete="off">
+    <label class="sr" for="composer-input" data-i18n="placeholder">Message</label>
+    <textarea id="composer-input" rows="1" maxlength="800" required></textarea>
+    <button type="submit" id="send" data-i18n="send">Send</button>
+  </form>
+
+  <footer class="foot">
+    <p data-i18n="disclaimer"></p>
+    <p class="muted"><span data-i18n="footer"></span> <span id="kb-version"></span></p>
+  </footer>
+
+  <dialog id="privacy-dialog" aria-labelledby="privacy-h">
+    <h2 id="privacy-h" data-i18n="privacy_title">Privacy</h2>
+    <p data-i18n="privacy"></p>
+    <form method="dialog"><button data-i18n="consent_ok">OK</button></form>
+  </dialog>
+
+  <dialog id="lead-dialog" aria-labelledby="lead-h">
+    <form id="lead-form" novalidate>
+      <h2 id="lead-h" data-i18n="lead_title">Talk to the team</h2>
+      <label><span data-i18n="lead_name">Name</span><input name="name" required maxlength="80" autocomplete="name"></label>
+      <label><span data-i18n="lead_contact">Email or phone</span><input name="contact" required maxlength="120" autocomplete="email"></label>
+      <label><span data-i18n="lead_brand">Company</span><select name="brand" id="lead-brand"></select></label>
+      <label><span data-i18n="lead_role">I am a</span>
+        <select name="role">
+          <option value="buyer" data-i18n="lead_role_buyer">Buyer</option>
+          <option value="investor" data-i18n="lead_role_investor">Investor</option>
+          <option value="renter" data-i18n="lead_role_renter">Renter</option>
+        </select></label>
+      <div class="row">
+        <label><span data-i18n="lead_budget">Budget</span><input name="budget" maxlength="40"></label>
+        <label><span data-i18n="lead_timeline">Timeline</span><input name="timeline" maxlength="40"></label>
+      </div>
+      <label><span data-i18n="lead_country">Country</span><input name="country" maxlength="60" autocomplete="country-name"></label>
+      <label><span data-i18n="lead_interest">Interest</span><input name="interest" maxlength="200"></label>
+      <label class="check"><input type="checkbox" name="consent"><span data-i18n="lead_consent"></span></label>
+      <p class="form-msg" id="lead-msg" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="ghost" id="lead-cancel">×</button>
+        <button type="submit" data-i18n="lead_submit">Send</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
