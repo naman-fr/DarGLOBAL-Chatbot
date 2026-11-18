@@ -1,0 +1,21 @@
+app_name_key: app_title          # UI strings live in locales/
+max_input_chars: 800
+history_turns: 6
+history_chars: 2400
+rate_limit:
+  per_ip_per_minute: 12
+  per_session_per_minute: 8
+cors_allow_origins: []            # same-origin SPA; add origins here if embedding elsewhere
+admin_token_env: ADMIN_TOKEN
+runtime_dir: data/runtime         # leads and feedback; not baked into the image
+retention_days:
+  leads: 90
+  feedback: 180
+suggestions:
+  count: 6
+  per_brand: 2
+numeric_check:
+  min_digits: 3                   # numbers shorter than this (bed counts, list markers) are not checked
+crm:
+  webhook_env: CRM_WEBHOOK_URL
+  timeout_seconds: 8
