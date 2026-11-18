@@ -1,0 +1,21 @@
+# Crawler behaviour. Every limit here is a politeness or budget knob, not a magic number in code.
+user_agent: "ConciergeDemoBot/1.0 (+independent technical demo; contact via CRAWLER_CONTACT)"
+timeout_seconds: 30
+default_delay_seconds: 2.0       # minimum gap between requests to the same host
+max_retries: 3
+backoff_base_seconds: 2.0
+circuit_breaker_threshold: 3     # consecutive 403/429/challenge responses before a host is skipped
+cache_dir: data/cache            # gitignored; stores ETag / Last-Modified and gzipped bodies
+# Bodies that mean "bot wall", not content. We never try to get past these.
+challenge_markers:
+  - "_Incapsula_Resource"
+  - "Just a moment..."
+  - "cf-chl-"
+  - "Additional security check is required"
+per_host_delay:
+  wasalt.sa: 2.5
+  cdn.wasalt.sa: 1.0
+  blog.wasalt.sa: 2.0
+  www.daralarkan.com: 2.5
+  en.wikipedia.org: 1.0
+  ar.wikipedia.org: 1.0

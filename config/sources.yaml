@@ -1,0 +1,97 @@
+# What to collect. Brand facts, URLs and budgets live here, never in src/.
+brands:
+  darglobal:
+    name: "DarGlobal"
+    name_ar: "دار جلوبال"
+    official_site: "https://www.darglobal.co.uk"
+    # The official site serves an Imperva CAPTCHA to every automated client (checked 2026-11-18),
+    # so it is recorded as blocked and not crawled. Facts come from the public sources below.
+    official_site_status: "blocked_by_bot_protection"
+    sources:
+      rns:
+        # The brand's own regulatory announcements (London Stock Exchange RNS), read from a public
+        # mirror whose robots.txt allows these pages.
+        index_url: "https://www.investegate.co.uk/company/DAR"
+        link_pattern: 'href="(https://www\.investegate\.co\.uk/announcement/rns/dar-global--dar/[^"]+)"'
+        source_name: "RNS via investegate.co.uk"
+        skip_title_words: ["holding-s-in-company", "director-pdmr", "total-voting-rights", "transfer-of-listing", "block-listing", "form-8"]
+        max_announcements: 22
+        max_chars: 24000
+        end_markers: ["This information is provided by RNS", "END", "RNS may use your IP address"]
+      wikipedia:
+        # Only /wiki/ article pages: robots.txt disallows /w/ (the API) for crawlers.
+        page_url_en: "https://en.wikipedia.org/wiki/"
+        page_url_ar: "https://ar.wikipedia.org/wiki/"
+        titles_en:
+          - "DarGlobal"
+          - "Dar Al Arkan Real Estate Development Company"
+        # Sections of these pages are always the brand's; other pages are attributed per section.
+        brand_pages: ["DarGlobal", "Dar Global", "دار جلوبال"]
+        parent_brand: daralarkan
+        brand_mentions: &dg_mentions
+          ["DarGlobal", "Dar Global", "دار جلوبال", "دار غلوبال", "Trump", "Missoni", "Elie Saab", "Aston Martin",
+           "Pagani", "Lamborghini", "Mouawad", "Urban Oasis", "W Residences", "Les Vagues", "AIDA", "Astera", "Neptune"]
+      parent_site:
+        base: "https://www.daralarkan.com"
+        sitemap: "https://www.daralarkan.com/sitemap.xml"
+        brand: daralarkan
+        brand_mentions: *dg_mentions
+        # Pages from the parent company that describe the international arm or the group.
+        include_patterns:
+          - "/en/investor-relations/darglobal"
+          - "/ar/investor-relations/darglobal"
+          - "/en/about-us"
+          - "/ar/about-us"
+          - "/en/portfolio"
+          - "/en/investor-relations$"
+          - "/en/investor-relations/fact-sheet"
+          - "/en/investor-relations/financial-information/key-figures"
+          - "/en/contact"
+        max_pages: 30
+  daralarkan:
+    # Parent of both brands. Not a target brand: its pages give group context and are labelled as
+    # parent-company content so they are never passed off as either brand's facts.
+    role: parent
+    name: "Dar Al Arkan (parent company)"
+    name_ar: "دار الأركان (الشركة الأم)"
+    official_site: "https://www.daralarkan.com"
+  wasalt:
+    name: "Wasalt"
+    name_ar: "وصلت"
+    official_site: "https://wasalt.sa"
+    llms_txt: "https://wasalt.sa/llms.txt"
+    attribution: "Source: Wasalt.sa"
+    sitemaps:
+      static_en: "https://cdn.wasalt.sa/sitemap/static_sitemap_en_sa.xml.gz"
+      static_ar: "https://cdn.wasalt.sa/sitemap/static_sitemap_ar_sa.xml.gz"
+      category_en: "https://cdn.wasalt.sa/sitemap/category_sitemap_en_sa.xml.gz"
+      category_ar: "https://cdn.wasalt.sa/sitemap/category_sitemap_ar_sa.xml.gz"
+      rental_srp_en: "https://cdn.wasalt.sa/sitemap/rental_srp_sitemap_en_sa.xml.gz"
+    pages:
+      - "https://wasalt.sa/en/corporate"
+      - "https://wasalt.sa/corporate"
+    static_page_keep: ["wasalt-business", "masterplan", "privacy-policy", "terms-of-advertising", "terms-of-use"]
+    blog:
+      api: "https://blog.wasalt.sa/wp-json/wp/v2/posts"
+      per_page: 50
+      max_pages: 3
+      max_chars: 6000
+    # Listings are volatile and huge (60k+ in the sitemap). We sample search-result pages,
+    # stratified by city x category, and only fetch URLs that the category sitemap advertises.
+    listing_budget:
+      cities: ["riyadh", "jeddah", "dammam", "al-khobar", "makkah", "madinah", "khamis-mushayt", "taif", "abha", "tabuk"]
+      cities_ar: {riyadh: "الرياض", jeddah: "جدة", dammam: "الدمام", al-khobar: "الخبر", makkah: "مكة", madinah: "المدينة", khamis-mushayt: "خميس", taif: "الطائف", abha: "أبها", tabuk: "تبوك"}
+      categories:
+        - "apartments-for-sale"
+        - "villas-for-sale"
+        - "lands-for-sale"
+        - "floors-for-sale"
+        - "apartments-for-rent"
+        - "villas-for-rent"
+        - "commercial-properties-for-rent"
+        - "properties-for-sale"
+        - "properties-for-rent"
+      max_srp_pages_en: 70
+      max_srp_pages_ar: 20
+      daily_rental_pages: 8
+      description_max_chars: 600
