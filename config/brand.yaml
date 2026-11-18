@@ -1,4 +1,4 @@
-# Neutral, formal theming. No logos or imagery from any company are used.
+# Formal theming. Brand logos (config/sources.yaml) are the companies' own marks, shown for identification.
 wordmark: "Concierge"
 monogram: "C"
 theme:

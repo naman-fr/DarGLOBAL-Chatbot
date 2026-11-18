@@ -3,6 +3,9 @@ brands:
   darglobal:
     name: "DarGlobal"
     name_ar: "دار جلوبال"
+    logo: "/assets/brand/darglobal.svg"       # official logo, from the brand's own CDN
+    logo_color: "#161b26"
+    logo_color_dark: "#ece7de"
     tagline: "International luxury developer, listed in London"
     tagline_ar: "مطوّر عقاري فاخر دولي مدرج في لندن"
     coverage: "Regulatory announcements, Wikipedia (EN/AR)"
@@ -58,6 +61,9 @@ brands:
     role: parent
     name: "Dar Al Arkan (parent company)"
     name_ar: "دار الأركان (الشركة الأم)"
+    logo: "/assets/brand/daralarkan.png"      # official logo, from the brand's own CDN
+    logo_color: "#161b26"
+    logo_color_dark: "#ece7de"
     tagline: "Parent company, Saudi developer"
     tagline_ar: "الشركة الأم، مطوّر سعودي"
     coverage: "Corporate site, Wikipedia"
@@ -66,6 +72,9 @@ brands:
   wasalt:
     name: "Wasalt"
     name_ar: "وصلت"
+    logo: "/assets/brand/wasalt.svg"          # official logo, from the brand's own CDN
+    logo_color: "#510c76"
+    logo_color_dark: "#c7a3e0"
     tagline: "Saudi property marketplace"
     tagline_ar: "منصة عقارية سعودية"
     coverage: "Listings unavailable: the site blocks automated access"

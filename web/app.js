@@ -94,10 +94,26 @@ function renderStats() {
   $("#stats").innerHTML = rows.map(([v, k, small]) => `<div><dd class="${small ? "small" : ""}">${esc(v)}</dd><dt>${esc(k)}</dt></div>`).join("");
 }
 
+// Official logos are single-colour marks drawn through a CSS mask, so each one can take the right tint
+// in light and dark mode (config/sources.yaml: logo, logo_color, logo_color_dark).
+function logo(b, cls = "logo") {
+  if (!b.logo) return `<span class="${cls} text">${esc(brandName(b))}</span>`;
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const color = (dark ? b.logo_color_dark : b.logo_color) || "currentColor";
+  return `<span class="${cls}" role="img" aria-label="${esc(brandName(b))}" style="--logo:url('${esc(b.logo)}');--logo-color:${esc(color)}"></span>`;
+}
+
+function renderHeaderLogos() {
+  const targets = state.cfg.brands.filter(b => b.role !== "parent");
+  $("#header-logos").innerHTML = targets.map(b => logo(b, "logo logo-sm")).join('<span class="logo-sep" aria-hidden="true"></span>');
+}
+
 function renderBrands() {
+  renderHeaderLogos();
   const row = $("#brand-row");
   row.innerHTML = state.cfg.brands.map(b => `
     <article class="${brandClass(b.key, "brand-card")}">
+      <a class="brand-logo" href="${esc(b.url)}" target="_blank" rel="noopener">${logo(b, "logo logo-md")}</a>
       <h3><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(brandName(b))}</a></h3>
       <p>${esc(brandText(b, "tagline"))}</p>
       <div class="meta"><span>${esc(brandText(b, "coverage"))}</span><span class="count">${esc(fmt(state.L.brand_records, { n: num(b.records) }))}</span></div>
@@ -429,7 +445,6 @@ async function boot() {
   state.cfg = await (await fetch("/api/config")).json();
   applyTheme(state.cfg.theme);
   $("#wordmark").textContent = state.cfg.wordmark;
-  $("#monogram").textContent = state.cfg.monogram || "";
   renderAll();
 }
 

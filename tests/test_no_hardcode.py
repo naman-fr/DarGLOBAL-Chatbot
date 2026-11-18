@@ -38,6 +38,6 @@ def test_no_brand_names_urls_or_model_ids_in_src():
 
 def test_ui_has_no_brand_literals():
     forbidden = _forbidden()
-    for path in (ROOT / "web").glob("*"):
+    for path in (p for p in (ROOT / "web").rglob("*") if p.is_file() and p.suffix in (".html", ".js", ".css")):
         content = path.read_text(encoding="utf-8")
         assert not [w for w in forbidden if w in content], path.name
