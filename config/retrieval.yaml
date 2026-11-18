@@ -17,7 +17,8 @@ embedding:
 top_k: 6
 candidates_per_retriever: 30
 rrf_k: 60
-weights: {bm25: 1.0, dense: 1.2}
+weights: {bm25: 1.0, dense: 1.2, graph: 0.2}  # graph weight chosen by the sweep in docs/evals.md
+graph_retrieval: true             # third RRF list from config/graph.yaml entity expansion (GraphRAG)
 # Best dense similarity among the top 3 hits must reach this for the KB to "know" the answer.
 min_dense_similarity: 0.32
 # Questions without any brand or real-estate cue must be this close to a passage to be answered.

@@ -12,7 +12,7 @@ ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /build
 COPY requirements.in requirements-ingest.in requirements-ingest.lock ./
 RUN pip install --no-deps -r requirements-ingest.lock
-COPY config/retrieval.yaml ./config/
+COPY config/retrieval.yaml config/graph.yaml ./config/
 # Only the modules the KB build imports, so edits elsewhere in src/ keep this stage cached.
 COPY src/concierge/__init__.py src/concierge/config.py ./src/concierge/
 COPY src/concierge/kb ./src/concierge/kb

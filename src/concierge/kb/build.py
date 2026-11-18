@@ -1,4 +1,4 @@
-"""Build the KB snapshot: SQLite entities + chunk FTS5 index + dense embeddings + manifest."""
+"""Build the KB snapshot: SQLite records + chunk FTS5 index + knowledge graph + dense embeddings + manifest."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ import numpy as np
 
 from concierge import config
 from concierge.kb.chunk import chunk_record
+from concierge.kb.graph import build_graph
 
 SCHEMA = """
 CREATE TABLE records (id TEXT PRIMARY KEY, kind TEXT, brand TEXT, lang TEXT, title TEXT, url TEXT,
@@ -135,6 +136,7 @@ def build(out_dir: str | None = None) -> dict:
             ),
         )
     con.execute("INSERT INTO chunks_fts(chunks_fts) VALUES ('rebuild')")
+    graph_stats = build_graph(con, [{"rowid": i, **c} for i, c in enumerate(chunks, start=1)])
 
     emb_cfg = cfg["embedding"]
     dim = 0
@@ -156,6 +158,7 @@ def build(out_dir: str | None = None) -> dict:
         "embedding_dim": dim,
         "chunk_chars": cfg["chunk_chars"],
         "chunk_overlap": cfg["chunk_overlap"],
+        "graph": graph_stats,
         "last_fetch": max((r["prov"]["fetched_at"] for r in records), default=None),
         "build_seconds": round(time.monotonic() - started, 1),
     }

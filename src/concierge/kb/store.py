@@ -1,4 +1,5 @@
-"""Read side of the KB: hybrid retrieval (FTS5 BM25 + dense cosine, fused with RRF) and listing search."""
+"""Read side of the KB: hybrid retrieval (FTS5 BM25 + dense cosine + knowledge-graph expansion, fused with
+RRF) and structured listing search."""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from concierge import config
+from concierge.kb.graph import GraphContext, GraphIndex
 
 _TOKEN = re.compile(r"[\w؀-ۿ]+", re.UNICODE)
 
@@ -32,6 +34,8 @@ class Hit:
     bm25_rank: int | None = None
     dense_rank: int | None = None
     dense_sim: float | None = None
+    graph_rank: int | None = None
+    rowid: int = 0
 
 
 @dataclass
@@ -76,6 +80,8 @@ class KB:
         self._embedder = None
         self._embed_lock = threading.Lock()
         self.rowids = [r[0] for r in self._con().execute("SELECT rowid FROM chunks ORDER BY rowid")]
+        self._row_index = {rowid: i for i, rowid in enumerate(self.rowids)}
+        self._graph: GraphIndex | None = None
 
     # sqlite connections are per thread; FastAPI runs sync work in a pool
     def _con(self) -> sqlite3.Connection:
@@ -132,13 +138,19 @@ class KB:
         args = [match] + ([brand] if brand else []) + [n]
         return [(r[0], -r[1]) for r in self._con().execute(sql, args)]
 
-    def dense(self, qvec: np.ndarray | None, n: int, brand: str | None = None) -> list[tuple[int, float]]:
+    def _all_sims(self, qvec: np.ndarray | None) -> np.ndarray | None:
         if qvec is None or self.vectors is None:
+            return None
+        return np.asarray(self.vectors, dtype=np.float32) @ qvec
+
+    def dense(
+        self, qvec: np.ndarray | None, n: int, brand: str | None = None, sims: np.ndarray | None = None
+    ) -> list[tuple[int, float]]:
+        sims = self._all_sims(qvec) if sims is None else sims
+        if sims is None:
             return []
-        sims = np.asarray(self.vectors, dtype=np.float32) @ qvec
         if brand:
-            brands = self._brand_mask()
-            sims = np.where(brands == brand, sims, -1.0)
+            sims = np.where(self._brand_mask() == brand, sims, -1.0)
         idx = np.argsort(-sims)[:n]
         return [(self.rowids[i], float(sims[i])) for i in idx if sims[i] > -1.0]
 
@@ -147,9 +159,29 @@ class KB:
             self._brands = np.array([r[0] for r in self._con().execute("SELECT brand FROM chunks ORDER BY rowid")])
         return self._brands
 
+    @property
+    def graph(self) -> GraphIndex:
+        if self._graph is None:
+            self._graph = GraphIndex(self._con())
+        return self._graph
+
+    def graph_context(self, text: str) -> GraphContext:
+        return self.graph.context(text) if self.cfg.get("graph_retrieval", True) else GraphContext()
+
+    def row_index(self, rowid: int) -> int:
+        """Position of a chunk in the embeddings matrix."""
+        return self._row_index[rowid]
+
     def search(
-        self, query: str, k: int | None = None, brand: str | None = None, extra_queries: list[str] | None = None
+        self,
+        query: str,
+        k: int | None = None,
+        brand: str | None = None,
+        extra_queries: list[str] | None = None,
+        graph: GraphContext | None = None,
+        retrievers: tuple[str, ...] = ("bm25", "dense", "graph"),
     ) -> list[Hit]:
+        """Reciprocal-rank fusion of up to three ranked lists: BM25, dense cosine, and graph expansion."""
         k = k or self.cfg["top_k"]
         n = self.cfg["candidates_per_retriever"]
         rrf_k = self.cfg["rrf_k"]
@@ -157,16 +189,23 @@ class KB:
         fused: dict[int, float] = {}
         bm_rank: dict[int, int] = {}
         dn_rank: dict[int, int] = {}
-        dn_sim: dict[int, float] = {}
-        for q in [query] + (extra_queries or []):
-            for rank, (rowid, _) in enumerate(self.bm25(q, n, brand)):
-                fused[rowid] = fused.get(rowid, 0.0) + w["bm25"] / (rrf_k + rank + 1)
-                bm_rank.setdefault(rowid, rank)
-        qvec = self.embed_query(query)
-        for rank, (rowid, sim) in enumerate(self.dense(qvec, n, brand)):
-            fused[rowid] = fused.get(rowid, 0.0) + w["dense"] / (rrf_k + rank + 1)
-            dn_rank.setdefault(rowid, rank)
-            dn_sim[rowid] = sim
+        gr_rank: dict[int, int] = {}
+        if "bm25" in retrievers:
+            for q in [query] + (extra_queries or []):
+                for rank, (rowid, _) in enumerate(self.bm25(q, n, brand)):
+                    fused[rowid] = fused.get(rowid, 0.0) + w["bm25"] / (rrf_k + rank + 1)
+                    bm_rank.setdefault(rowid, rank)
+        sims = self._all_sims(self.embed_query(query))
+        if "dense" in retrievers:
+            for rank, (rowid, _sim) in enumerate(self.dense(None, n, brand, sims=sims)):
+                fused[rowid] = fused.get(rowid, 0.0) + w["dense"] / (rrf_k + rank + 1)
+                dn_rank.setdefault(rowid, rank)
+        if "graph" in retrievers and graph and graph.chunk_ranking:
+            brands = self._brand_mask() if brand else None
+            ranked = [r for r in graph.chunk_ranking if brands is None or brands[self._row_index[r]] == brand]
+            for rank, rowid in enumerate(ranked):
+                fused[rowid] = fused.get(rowid, 0.0) + w.get("graph", 1.0) / (rrf_k + rank + 1)
+                gr_rank.setdefault(rowid, rank)
         top = sorted(fused.items(), key=lambda kv: -kv[1])[:k]
         if not top:
             return []
@@ -180,12 +219,16 @@ class KB:
         hits = []
         for rowid, score in top:
             h = self._row_to_hit(rows[rowid])
-            h.score, h.bm25_rank, h.dense_rank, h.dense_sim = (
+            h.rowid = rowid
+            h.score, h.bm25_rank, h.dense_rank, h.graph_rank = (
                 score,
                 bm_rank.get(rowid),
                 dn_rank.get(rowid),
-                dn_sim.get(rowid),
+                gr_rank.get(rowid),
             )
+            # Every hit carries its true cosine, whichever retriever found it, so the confidence gate
+            # judges graph-only hits on the same scale.
+            h.dense_sim = None if sims is None else float(sims[self._row_index[rowid]])
             hits.append(h)
         return hits
 

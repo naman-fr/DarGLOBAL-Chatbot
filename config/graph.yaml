@@ -1,0 +1,138 @@
+# Knowledge graph (GraphRAG). Entities are matched in every indexed chunk by alias; two entities named in
+# the same sentence get an edge whose label comes from their type pair, and every edge keeps the chunks
+# that evidence it. Relations are therefore only ever as strong as the source text: the graph adds
+# structure and reach (multi-hop, aggregation, cross-lingual entry points), never new facts.
+enabled: true
+max_evidence_per_edge: 6
+min_edge_weight: 1
+# Relations that only link an entity to the nearest entity of the other type in the sentence.
+nearest_only: ["located in", "branded with"]
+# Query-time expansion
+max_seed_entities: 4
+max_neighbours: 10
+max_graph_chunks: 30
+max_facts_in_prompt: 10
+# A question containing one of these words wants neighbours of that type first ("projects in Oman").
+type_cues:
+  project: ["project", "projects", "development", "developments", "tower", "towers", "residences", "villas",
+            "مشروع", "مشاريع", "مشروعات", "برج", "أبراج", "فلل"]
+  partner: ["partner", "partners", "partnership", "brand", "brands", "branded", "collaboration",
+            "شريك", "شركاء", "شراكة", "علامة", "علامات"]
+  place: ["where", "country", "countries", "city", "cities", "market", "markets", "أين", "دولة", "دول", "مدينة", "مدن", "أسواق"]
+  person: ["ceo", "chairman", "chief executive", "management", "board", "الرئيس التنفيذي", "رئيس مجلس", "الإدارة"]
+# Edge label by (type, type), order-insensitive. Pairs not listed here produce no edge.
+relations:
+  company|project: develops
+  project|place: located in
+  partner|project: branded with
+  company|partner: partners with
+  company|place: active in
+  company|exchange: listed on
+  company|company: related to
+  person|company: leads
+  project|project: mentioned with
+labels:
+  en: {company: Company, project: Project, partner: Partner brand, place: Place, exchange: Exchange, person: Person}
+  ar: {company: شركة, project: مشروع, partner: علامة شريكة, place: موقع, exchange: سوق مالية, person: شخص}
+relation_labels_ar:
+  develops: يطوّر
+  located in: يقع في
+  branded with: بالشراكة مع
+  partners with: شريك لـ
+  active in: ينشط في
+  listed on: مدرجة في
+  related to: مرتبطة بـ
+  leads: يقود
+  mentioned with: يُذكر مع
+entities:
+  # ---- companies (keys match config/sources.yaml brands where they exist) ----
+  - {id: darglobal, type: company, name: DarGlobal, name_ar: دار جلوبال, brand: darglobal,
+     aliases: ["Dar Global", "DarGlobal", "Dar Global PLC", "دار جلوبال", "دار غلوبال"]}
+  - {id: daralarkan, type: company, name: Dar Al Arkan, name_ar: دار الأركان, brand: daralarkan,
+     aliases: ["Dar Al Arkan", "Dar Al-Arkan", "DAARE", "دار الأركان", "دار الاركان"]}
+  - {id: wasalt, type: company, name: Wasalt, name_ar: وصلت, brand: wasalt, aliases: ["Wasalt", "وصلت"]}
+  # ---- projects ----
+  - {id: aida, type: project, name: AIDA, aliases: ["AIDA", "Aida", "عايدة", "آيدا"]}
+  - {id: trump-tower-jeddah, type: project, name: Trump Tower Jeddah, aliases: ["Trump Tower Jeddah", "برج ترامب جدة"]}
+  - {id: trump-plaza-jeddah, type: project, name: Trump Plaza Jeddah, aliases: ["Trump Plaza Jeddah", "Trump Plaza"]}
+  - {id: trump-tower-dubai, type: project, name: Trump Tower Dubai, aliases: ["Trump Tower Dubai", "برج ترامب دبي"]}
+  - {id: trump-intl-hotel-tower, type: project, name: Trump International Hotel & Tower,
+     aliases: ["Trump International Hotel & Tower", "Trump International Hotel"]}
+  - {id: trump-golf-oman, type: project, name: Trump International Golf Club, aliases: ["Trump International Golf Club"]}
+  - {id: trump-villas, type: project, name: Trump Villas, aliases: ["Trump Villas"]}
+  - {id: astera, type: project, name: The Astera, aliases: ["The Astera", "Astera"]}
+  - {id: da-vinci-tower, type: project, name: Da Vinci Tower, aliases: ["Da Vinci Tower", "Da Vinci Tower by Pagani"]}
+  - {id: neptune, type: project, name: Neptune by Mouawad, aliases: ["Neptune by Mouawad", "Neptune"]}
+  - {id: urban-oasis, type: project, name: Urban Oasis, aliases: ["Urban Oasis Tower", "Urban Oasis"]}
+  - {id: les-vagues, type: project, name: Les Vagues, aliases: ["Les Vagues"]}
+  - {id: tierra-viva, type: project, name: Tierra Viva, aliases: ["Tierra Viva"]}
+  - {id: finca-cortesin, type: project, name: Finca Cortesin, aliases: ["Finca Cortesin", "Finca Cortesín"]}
+  - {id: marriott-residences, type: project, name: Marriott Residences, aliases: ["Marriott Residences"]}
+  - {id: albert-hall-mansions, type: project, name: Albert Hall Mansions, aliases: ["Albert Hall Mansions"]}
+  - {id: old-park-lane, type: project, name: Old Park Lane, aliases: ["Old Park Lane"]}
+  - {id: d-villas, type: project, name: D-Villas, aliases: ["D-Villas"]}
+  - {id: simaisima-villas, type: project, name: Simaisima Villas, aliases: ["Simaisima Villas", "Simaisima"]}
+  - {id: rayana, type: project, name: Rayana, aliases: ["Rayana Mansions", "Rayana"]}
+  - {id: padel-living, type: project, name: Padel Living, aliases: ["Padel Living"]}
+  - {id: al-noor-villas, type: project, name: Al Noor Villas, aliases: ["Al Noor Villas"]}
+  - {id: buraidah-hills, type: project, name: Buraidah Hills, aliases: ["Buraidah Hills"]}
+  - {id: parisiana, type: project, name: Parisiana Boulevard, aliases: ["Parisiana Boulevard", "Parisiana"]}
+  - {id: qasr-mall, type: project, name: Qasr Mall, aliases: ["Qasr Mall"]}
+  - {id: shams-ar-riyadh, type: project, name: Shams Ar Riyadh, aliases: ["Shams Ar Riyadh", "Shams Al Riyadh", "شمس الرياض"]}
+  - {id: al-suwaidi-park, type: project, name: Al Suwaidi Park, aliases: ["Al Suwaidi Park"]}
+  - {id: wadi-safar, type: project, name: Wadi Safar, aliases: ["Wadi Safar", "وادي صفار"]}
+  - {id: dar-al-mashaer, type: project, name: Dar Al Mashaer, aliases: ["Dar Al Mashaer"]}
+  - {id: project-radium, type: project, name: Project Radium II, aliases: ["Project Radium II", "Project Radium"]}
+  # ---- partner brands and counterparties ----
+  - {id: trump-org, type: partner, name: The Trump Organization, name_ar: منظمة ترامب,
+     aliases: ["The Trump Organization", "Trump Organization", "Trump Organisation", "منظمة ترامب"]}
+  - {id: aston-martin, type: partner, name: Aston Martin, name_ar: أستون مارتن, aliases: ["Aston Martin", "أستون مارتن"]}
+  - {id: pagani, type: partner, name: Pagani, aliases: ["Pagani", "باغاني"]}
+  - {id: lamborghini, type: partner, name: Lamborghini, aliases: ["Automobili Lamborghini", "Lamborghini", "لامبورغيني"]}
+  - {id: missoni, type: partner, name: Missoni, aliases: ["Missoni", "ميسوني"]}
+  - {id: mouawad, type: partner, name: Mouawad, aliases: ["Mouawad", "معوض"]}
+  - {id: elie-saab, type: partner, name: Elie Saab, name_ar: إيلي صعب, aliases: ["Elie Saab", "ELIE SAAB", "إيلي صعب"]}
+  - {id: versace, type: partner, name: Versace Home, aliases: ["Versace Home", "Versace", "فيرساتشي"]}
+  - {id: marriott, type: partner, name: Marriott, aliases: ["Marriott International", "Marriott"]}
+  - {id: wynn, type: partner, name: Wynn Resorts, aliases: ["Wynn Resort", "Wynn Resorts"]}
+  - {id: omran, type: partner, name: Oman Tourism Development Company, aliases: ["Oman Tourism Development Company", "OMRAN"]}
+  - {id: emirates-nbd, type: partner, name: Emirates NBD, aliases: ["Emirates NBD"]}
+  # ---- exchanges ----
+  - {id: lse, type: exchange, name: London Stock Exchange, name_ar: بورصة لندن,
+     aliases: ["London Stock Exchange", "LSE", "بورصة لندن"]}
+  - {id: tadawul, type: exchange, name: Saudi Stock Exchange, name_ar: السوق المالية السعودية,
+     aliases: ["Saudi Stock Exchange", "Tadawul", "تداول", "السوق المالية السعودية"]}
+  # ---- people (company officers named in public filings) ----
+  - {id: ziad-el-chaar, type: person, name: Ziad El Chaar, aliases: ["Ziad El Chaar", "زياد الشعار"]}
+  - {id: yousef-al-shelash, type: person, name: Yousef Al-Shelash, aliases: ["Yousef Al-Shelash", "Yousef Al Shelash", "يوسف الشلاش"]}
+  # ---- places ----
+  - {id: saudi-arabia, type: place, name: Saudi Arabia, name_ar: السعودية,
+     aliases: ["Saudi Arabia", "Kingdom of Saudi Arabia", "KSA", "السعودية", "المملكة العربية السعودية"]}
+  - {id: riyadh, type: place, name: Riyadh, name_ar: الرياض, aliases: ["Riyadh", "الرياض"]}
+  - {id: jeddah, type: place, name: Jeddah, name_ar: جدة, aliases: ["Jeddah", "جدة"]}
+  - {id: makkah, type: place, name: Makkah, name_ar: مكة, aliases: ["Makkah", "Mecca", "مكة المكرمة", "مكة"]}
+  - {id: madinah, type: place, name: Madinah, name_ar: المدينة المنورة, aliases: ["Madinah", "Medina", "المدينة المنورة"]}
+  - {id: buraidah, type: place, name: Buraidah, name_ar: بريدة, aliases: ["Buraidah", "بريدة"]}
+  - {id: diriyah, type: place, name: Diriyah, name_ar: الدرعية, aliases: ["Diriyah", "الدرعية"]}
+  - {id: uae, type: place, name: United Arab Emirates, name_ar: الإمارات,
+     aliases: ["United Arab Emirates", "UAE", "الإمارات"]}
+  - {id: dubai, type: place, name: Dubai, name_ar: دبي, aliases: ["Dubai", "دبي"]}
+  - {id: ras-al-khaimah, type: place, name: Ras Al Khaimah, name_ar: رأس الخيمة, aliases: ["Ras Al Khaimah", "رأس الخيمة"]}
+  - {id: al-marjan, type: place, name: Al Marjan Island, aliases: ["Al Marjan Island", "Al Marjan"]}
+  - {id: jumeirah-golf-estates, type: place, name: Jumeirah Golf Estates, aliases: ["Jumeirah Golf Estates", "Jumeirah Golf Estate"]}
+  - {id: downtown-dubai, type: place, name: Downtown Dubai, aliases: ["Downtown Dubai"]}
+  - {id: oman, type: place, name: Oman, name_ar: عُمان, aliases: ["Oman", "Sultanate of Oman", "عمان", "عُمان", "سلطنة عمان"]}
+  - {id: muscat, type: place, name: Muscat, name_ar: مسقط, aliases: ["Muscat", "مسقط"]}
+  - {id: qatar, type: place, name: Qatar, name_ar: قطر, aliases: ["Qatar", "قطر"]}
+  - {id: doha, type: place, name: Doha, name_ar: الدوحة, aliases: ["Doha", "الدوحة"]}
+  - {id: lusail, type: place, name: Lusail, name_ar: لوسيل, aliases: ["Lusail", "لوسيل"]}
+  - {id: spain, type: place, name: Spain, name_ar: إسبانيا, aliases: ["Spain", "إسبانيا", "اسبانيا"]}
+  - {id: marbella, type: place, name: Marbella, name_ar: ماربيا, aliases: ["Marbella", "ماربيا"]}
+  - {id: costa-del-sol, type: place, name: Costa del Sol, aliases: ["Costa del Sol", "South of Spain"]}
+  - {id: greece, type: place, name: Greece, name_ar: اليونان, aliases: ["Greece", "اليونان"]}
+  - {id: athens, type: place, name: Athens, name_ar: أثينا, aliases: ["Athens", "أثينا"]}
+  - {id: uk, type: place, name: United Kingdom, name_ar: المملكة المتحدة,
+     aliases: ["United Kingdom", "UK", "England", "المملكة المتحدة", "بريطانيا"]}
+  - {id: london, type: place, name: London, name_ar: لندن, aliases: ["London", "لندن"]}
+  - {id: maldives, type: place, name: Maldives, name_ar: جزر المالديف, aliases: ["Maldives", "المالديف"]}
+  - {id: usa, type: place, name: United States, aliases: ["United States", "New York"]}
