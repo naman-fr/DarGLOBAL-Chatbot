@@ -1,0 +1,28 @@
+# Knowledge-base build and retrieval settings. Defaults chosen by `make eval-retrieval` (see docs/evals.md).
+kb_dir: data/kb
+records_path: data/processed/records.jsonl
+chunk_chars: 900
+chunk_overlap: 150
+# Listings are answered from structured SQL, not vector search; keeping them out of the index stops
+# thousands of near-identical listing blurbs from crowding out corporate and guide content.
+index_kinds: [article, corporate, faq, project]
+embedding:
+  enabled: true
+  model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  batch_size: 32
+  cache_dir: data/models/cache       # download cache (build time only)
+  runtime_dir: data/models/runtime   # model + tokenizer used by both the KB build and the API
+  spm_url: "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/sentencepiece.bpe.model"
+  quantize_int8: true                # fp16 graph -> fp32 -> dynamic int8; keeps RSS under the 512 MB free tier (ADR 0004)
+top_k: 6
+candidates_per_retriever: 30
+rrf_k: 60
+weights: {bm25: 1.0, dense: 1.2}
+# Best dense similarity among the top 3 hits must reach this for the KB to "know" the answer.
+min_dense_similarity: 0.32
+# Questions without any brand or real-estate cue must be this close to a passage to be answered.
+off_topic_min_similarity: 0.55
+stale_after_days: 120
+listing_results: 6
+# Page titles too generic to count as a named entity when deciding whether a question is on topic.
+generic_titles: ["about us", "contact us", "investor relations", "key figures", "fact sheet", "portfolio", "overview", "history"]
