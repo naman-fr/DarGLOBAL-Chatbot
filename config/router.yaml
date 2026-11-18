@@ -1,0 +1,56 @@
+# Deterministic intent routing. Free models are not trusted with tool calling, so routing is rules.
+injection_patterns:
+  - "ignore (all|any|the|your)? ?(previous|prior|above) (instructions|prompts?|rules)"
+  - "(reveal|show|print|repeat) (your|the) (system )?(prompt|instructions)"
+  - "you are now|act as (?!a buyer)|pretend to be|developer mode|jailbreak|DAN\\b"
+  - "تجاهل (كل )?التعليمات|اكشف (عن )?التعليمات|موجه النظام"
+greeting_patterns:
+  - "^(hi|hello|hey|good (morning|afternoon|evening)|salam|assalam[ou] ?alaikum)\\W*$"
+  - "^(مرحبا|اهلا|أهلا|السلام عليكم|صباح الخير|مساء الخير)\\W*$"
+handoff_patterns:
+  - "\\b(talk|speak|chat) (to|with) (a |an )?(human|person|agent|someone|sales|advisor)"
+  - "\\b(call me|contact me|reach me|book a (viewing|visit|call)|arrange a (viewing|visit)|register (my )?interest)\\b"
+  - "(تواصل معي|اتصل بي|أريد التحدث|موظف مبيعات|حجز موعد|تسجيل اهتمام)"
+listing_words:
+  apartment: ["apartment", "apartments", "flat", "flats", "شقة", "شقق"]
+  villa: ["villa", "villas", "فيلا", "فلل", "فلة"]
+  land: ["land", "lands", "plot", "plots", "أرض", "اراضي", "أراضي"]
+  floor: ["floor", "floors", "دور", "أدوار"]
+  building: ["building", "buildings", "عمارة", "عمائر"]
+  office: ["office", "offices", "مكتب", "مكاتب"]
+  shop: ["shop", "shops", "showroom", "showrooms", "محل", "معرض"]
+  chalet: ["chalet", "chalets", "شاليه", "شاليهات"]
+  rest house: ["rest house", "rest houses", "استراحة", "استراحات"]
+  farm: ["farm", "farms", "مزرعة", "مزارع"]
+purpose_words:
+  sale: ["buy", "buying", "for sale", "sale", "purchase", "own", "شراء", "للبيع", "بيع", "اشتري", "أشتري"]
+  rent: ["rent", "rental", "lease", "for rent", "إيجار", "ايجار", "للإيجار", "للايجار", "استئجار"]
+  daily_rent: ["daily", "per night", "nightly", "weekend", "يومي", "يومية", "بالليلة"]
+listing_hints: ["bed", "bedroom", "br", "sqm", "sq m", "budget", "under", "below", "less than", "cheapest", "listing",
+                "غرف", "غرفة", "متر", "ميزانية", "أقل من", "اقل من", "إعلان"]
+city_aliases:
+  Riyadh: ["riyadh", "الرياض", "رياض"]
+  Jeddah: ["jeddah", "jedda", "jidda", "جدة", "جده"]
+  Dammam: ["dammam", "الدمام"]
+  Al Khobar: ["khobar", "al khobar", "al-khobar", "الخبر"]
+  Makkah: ["makkah", "mecca", "مكة", "مكه"]
+  Madinah: ["madinah", "medina", "المدينة", "المدينه"]
+  Khamis Mushait: ["khamis mushait", "khamis mushayt", "خميس مشيط"]
+  Taif: ["taif", "الطائف"]
+  Abha: ["abha", "أبها", "ابها"]
+  Tabuk: ["tabuk", "تبوك"]
+number_words:
+  thousand: ["k", "thousand", "ألف", "الف", "آلاف"]
+  million: ["m", "mn", "million", "mil", "مليون", "ملايين"]
+# Which brand owns structured listings, and which brands are only answered from documents.
+listing_brand: wasalt
+document_only_brands: [darglobal]
+# Brand cues. A question naming one brand is answered from that brand only.
+brand_cues:
+  darglobal: ["darglobal", "dar global", "دار جلوبال", "دار غلوبال", "trump", "missoni", "elie saab", "aston martin",
+              "pagani", "lamborghini", "mouawad", "lse", "london stock", "dubai", "oman", "spain", "marbella",
+              "investor", "shareholder", "results", "ebitda", "dividend", "astera", "neptune", "w residences", "urban oasis", "aida", "rayana"]
+  wasalt: ["wasalt", "وصلت", "rega", "listing", "listings", "auction", "daily rental", "broker", "proptech", "مزاد", "وسيط", "إعلان", "منصة"]
+  daralarkan: ["dar al arkan", "daralarkan", "دار الأركان", "parent company", "الشركة الأم"]
+domain_words: ["property", "properties", "real estate", "home", "house", "invest", "project", "developer", "price", "payment plan",
+               "handover", "residence", "residences", "tower", "community", "عقار", "عقارات", "مشروع", "مشاريع", "سعر", "استثمار", "مطور", "سكن"]
