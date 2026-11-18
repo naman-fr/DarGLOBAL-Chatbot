@@ -1,0 +1,25 @@
+# Neutral theming. No logos or imagery from either company are used.
+wordmark: "Concierge"
+theme:
+  light:
+    bg: "#f7f5f1"
+    surface: "#ffffff"
+    ink: "#1d1b18"
+    muted: "#6b655c"
+    line: "#e4dfd6"
+    accent: "#8a6a3b"
+    accent_ink: "#ffffff"
+    brand_a: "#2f4a5a"   # first target brand label colour
+    brand_b: "#3c6b4f"   # second target brand label colour
+    brand_parent: "#6b5a7a"
+  dark:
+    bg: "#151413"
+    surface: "#1f1d1b"
+    ink: "#efebe4"
+    muted: "#a59e93"
+    line: "#33302c"
+    accent: "#c9a46a"
+    accent_ink: "#151413"
+    brand_a: "#8fb3c7"
+    brand_b: "#8fc7a3"
+    brand_parent: "#b9a6cc"
